@@ -10,19 +10,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
   :root {
-    --bg: #02080e;
-    --bg-soft: #050e16;
-    --ink: #cae8e4;
-    --ink-soft: #8ab8b4;
-    --ink-muted: #5a8499;
-    --ink-dim: #2d4654;
-    --line: rgba(168, 224, 216, 0.1);
-    --line-strong: rgba(168, 224, 216, 0.22);
-    --accent: #a8e0d8;
-    --accent-soft: rgba(168, 224, 216, 0.12);
-    --glass: rgba(8, 16, 24, 0.55);
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--line);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--line);
+    --bg: #efe9dd;
+    --bg-soft: #e6dfd0;
+    --ink: #17140f;
+    --ink-soft: #4a443a;
+    --ink-muted: #837a6b;
+    --ink-dim: #b3aa99;
+    --line: rgba(23, 20, 15, 0.12);
+    --line-strong: rgba(23, 20, 15, 0.22);
+    --accent: #2a2622;
+    --accent-soft: rgba(23, 20, 15, 0.08);
+    --glass: rgba(255, 253, 247, 0.55);
+    --shadow-sm: 0 1px 2px rgba(60, 50, 35, 0.12), 0 0 0 1px var(--line);
+    --shadow-md: 0 4px 16px rgba(60, 50, 35, 0.16), 0 0 0 1px var(--line);
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-serif: 'Instrument Serif', Georgia, serif;
   }
@@ -43,15 +43,15 @@
     position: fixed; inset: 0; z-index: 1;
     pointer-events: none;
     background:
-      radial-gradient(ellipse 70% 70% at 50% 50%, transparent 30%, rgba(0, 0, 0, 0.6) 100%),
-      radial-gradient(ellipse 100% 100% at 50% 100%, rgba(0, 30, 40, 0.15), transparent 50%);
+      radial-gradient(ellipse 75% 75% at 50% 48%, transparent 45%, rgba(120, 108, 86, 0.22) 100%),
+      radial-gradient(ellipse 100% 80% at 50% 0%, rgba(150, 138, 112, 0.12), transparent 55%);
   }
   .bg-grain {
     position: fixed; inset: 0; z-index: 2;
     pointer-events: none;
-    opacity: 0.6;
-    mix-blend-mode: overlay;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.8 0 0 0 0 0.95 0 0 0 0 0.9 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.31 0 0 0 0 0.24 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
   /* ============ TOP STATUS ============ */
@@ -115,7 +115,7 @@
   }
   .rail-icon:hover {
     color: var(--ink);
-    background: rgba(168, 224, 216, 0.05);
+    background: rgba(23, 20, 15, 0.05);
   }
   .rail-icon.active {
     color: var(--accent);
@@ -124,7 +124,7 @@
   .rail-icon .tip {
     position: absolute; left: 46px; top: 50%;
     transform: translateY(-50%);
-    background: rgba(8, 16, 24, 0.95);
+    background: rgba(247, 243, 235, 0.96);
     color: var(--ink);
     padding: 4px 10px;
     font-size: 11px;
@@ -186,6 +186,25 @@
     font-variant-numeric: tabular-nums;
   }
   .log-entry .m { color: var(--ink); }
+
+  /* ============ CURSOR ============ */
+  html, body, * { cursor: none; }
+  #cursorCanvas {
+    position: fixed; inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    width: 100%; height: 100%;
+    display: block;
+  }
+
+  /* ============ INK BACKGROUND ============ */
+  #inkCanvas {
+    position: fixed; inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    width: 100%; height: 100%;
+    display: block;
+  }
 
   /* ============ ENTITY CANVAS ============ */
   .entity-stage {
@@ -255,26 +274,26 @@
     font-size: 13px;
   }
   .btn:hover {
-    background: rgba(168, 224, 216, 0.08);
+    background: rgba(23, 20, 15, 0.08);
     color: var(--ink);
   }
   .btn.mic {
     background: var(--accent);
-    color: #02080e;
+    color: #f4efe3;
     font-weight: 700;
   }
   .btn.mic:hover {
-    background: #c6efe6;
+    background: #15120e;
     transform: scale(1.05);
   }
   body.listening .btn.mic {
-    background: #ff6b88;
-    color: #02080e;
+    background: #d2543f;
+    color: #f4efe3;
     animation: micPulse 1.2s ease-in-out infinite;
   }
   @keyframes micPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 107, 136, 0.4); }
-    50% { box-shadow: 0 0 0 10px rgba(255, 107, 136, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(210, 84, 63, 0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(210, 84, 63, 0); }
   }
 
   /* ============ WHISPER ============ */
@@ -296,7 +315,7 @@
     opacity: 0;
     transition: opacity 0.5s ease, transform 0.5s ease;
     padding: 0 24px;
-    text-shadow: 0 0 24px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 1px 18px rgba(239, 233, 221, 0.9);
   }
   .whisper.show {
     opacity: 1;
@@ -323,11 +342,11 @@
     letter-spacing: 0.02em;
     color: var(--ink);
     margin-bottom: 22px;
-    text-shadow: 0 0 30px rgba(168, 224, 216, 0.5);
+    text-shadow: 0 1px 2px rgba(60, 50, 35, 0.15);
     animation: bootGlow 2.2s ease-in-out infinite;
   }
   @keyframes bootGlow {
-    50% { text-shadow: 0 0 50px rgba(168, 224, 216, 0.8), 0 0 90px rgba(168, 224, 216, 0.3); }
+    50% { opacity: 0.62; }
   }
   .boot-bar {
     width: 160px; height: 1px;
@@ -360,6 +379,8 @@
 
 <div class="bg-vignette"></div>
 <div class="bg-grain"></div>
+
+<canvas id="inkCanvas"></canvas>
 
 <div class="topbar">
   <span class="dot"></span>
@@ -396,6 +417,8 @@
 </div>
 
 <canvas id="meshCanvas"></canvas>
+
+<canvas id="cursorCanvas"></canvas>
 
 <div class="whisper" id="whisper"></div>
 
@@ -762,6 +785,387 @@ function makeSimplex3D() {
 }
 
 /* ============================================================
+   CURSOR — a small soft ink dot that tracks the pointer.
+   The fluid dye now provides the trailing "stroke", so the
+   cursor itself is just a precise, always-visible head that
+   eases toward the pointer. The native arrow stays hidden.
+   ============================================================ */
+function setupCursor() {
+  const canvas = $('cursorCanvas');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0;
+  const dpr = Math.min(devicePixelRatio, 2);
+
+  let tx = window.innerWidth / 2, ty = window.innerHeight / 2; // pointer target
+  let hx = tx, hy = ty;                                        // smoothed head
+  let visible = false;
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  window.addEventListener('mousemove', e => { tx = e.clientX; ty = e.clientY; visible = true; });
+  window.addEventListener('mouseout', e => { if (!e.relatedTarget) visible = false; });
+  window.addEventListener('mousedown', () => { visible = true; });
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    // Gentle easing — the dot glides toward the pointer instead of snapping.
+    hx += (tx - hx) * 0.14;
+    hy += (ty - hy) * 0.14;
+    if (visible) {
+      const r = 5;
+      const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, r);
+      g.addColorStop(0, 'rgba(23, 20, 15, 0.78)');
+      g.addColorStop(1, 'rgba(23, 20, 15, 0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(hx, hy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  draw();
+}
+
+/* ============================================================
+   FLUID INK — a real GPU fluid simulation (Stable Fluids /
+   Navier–Stokes) on ping-pong half-float render targets.
+   Moving the cursor injects a velocity force + ink dye that
+   advects, swirls (vorticity confinement) and slowly dissipates
+   like dye in water. Calm at rest: with no input the ink clears
+   back to clean paper. Adapted from Pavel Dobryakov's
+   WebGL-Fluid-Simulation (MIT), ported to Three.js r128 and
+   composited as ink over the CSS paper. Reacts to excitement.
+   ============================================================ */
+function setupFluid() {
+  const canvas = $('inkCanvas');
+  if (typeof THREE === 'undefined') return;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
+  renderer.autoClear = false;
+  renderer.setPixelRatio(1);
+
+  // Half-float + linear filtering are required for the solver.
+  const gl = renderer.getContext();
+  const rtType = THREE.HalfFloatType;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.Camera();
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+  quad.frustumCulled = false;
+  scene.add(quad);
+
+  /* ---- tunables ---- */
+  const SIM_RES = 128, DYE_RES = 512;
+  const PRESSURE_ITER = 20;
+  const PRESSURE_DECAY = 0.8;
+  const CURL = 30;            // vorticity (swirliness)
+  const VEL_DISS = 2.5;       // velocity dissipation (higher = settles faster)
+  const DYE_DISS = 1.4;       // ink dissipation (calm-at-rest clear-out)
+  const SPLAT_RADIUS = 0.0025;
+  const SPLAT_FORCE = 6000;
+  const INK_AMT = 0.15;       // ink per cursor splat
+  const INK = new THREE.Color(0x17140f);
+
+  /* ---- render targets ---- */
+  function createRT(w, h) {
+    return new THREE.WebGLRenderTarget(w, h, {
+      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+      type: rtType, format: THREE.RGBAFormat,
+      depthBuffer: false, stencilBuffer: false,
+      wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
+    });
+  }
+  function createDouble(w, h) {
+    let a = createRT(w, h), b = createRT(w, h);
+    return { get read() { return a; }, get write() { return b; }, swap() { const t = a; a = b; b = t; } };
+  }
+  function getRes(res) {
+    let aspect = window.innerWidth / window.innerHeight;
+    if (aspect < 1) aspect = 1 / aspect;
+    const min = Math.round(res), max = Math.round(res * aspect);
+    return window.innerWidth > window.innerHeight ? { w: max, h: min } : { w: min, h: max };
+  }
+
+  let velocity, dye, divergence, curlRT, pressure, velTexel;
+  function initFBOs() {
+    const s = getRes(SIM_RES), d = getRes(DYE_RES);
+    velocity   = createDouble(s.w, s.h);
+    pressure   = createDouble(s.w, s.h);
+    dye        = createDouble(d.w, d.h);
+    divergence = createRT(s.w, s.h);
+    curlRT     = createRT(s.w, s.h);
+    velTexel   = new THREE.Vector2(1 / s.w, 1 / s.h);
+  }
+
+  /* ---- shaders ---- */
+  const baseVertex = `
+    varying vec2 vUv; varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
+    uniform vec2 texelSize;
+    void main() {
+      vUv = uv;
+      vL = vUv - vec2(texelSize.x, 0.0);
+      vR = vUv + vec2(texelSize.x, 0.0);
+      vT = vUv + vec2(0.0, texelSize.y);
+      vB = vUv - vec2(0.0, texelSize.y);
+      gl_Position = vec4(position.xy, 0.0, 1.0);
+    }
+  `;
+  function prog(frag, uniforms) {
+    return new THREE.ShaderMaterial({
+      uniforms: Object.assign({ texelSize: { value: new THREE.Vector2() } }, uniforms),
+      vertexShader: baseVertex, fragmentShader: frag,
+      depthTest: false, depthWrite: false, blending: THREE.NoBlending,
+    });
+  }
+
+  const splatMat = prog(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uTarget; uniform float aspectRatio;
+    uniform vec3 color; uniform vec2 point; uniform float radius;
+    void main() {
+      vec2 p = vUv - point.xy; p.x *= aspectRatio;
+      vec3 splat = exp(-dot(p, p) / radius) * color;
+      vec3 base = texture2D(uTarget, vUv).xyz;
+      gl_FragColor = vec4(base + splat, 1.0);
+    }`, {
+    uTarget: { value: null }, aspectRatio: { value: 1 },
+    color: { value: new THREE.Vector3() }, point: { value: new THREE.Vector2() },
+    radius: { value: SPLAT_RADIUS },
+  });
+
+  const advectionMat = prog(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uVelocity; uniform sampler2D uSource;
+    uniform vec2 texelSize; uniform float dt; uniform float dissipation;
+    void main() {
+      vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
+      gl_FragColor = texture2D(uSource, coord) / (1.0 + dissipation * dt);
+      gl_FragColor.a = 1.0;
+    }`, {
+    uVelocity: { value: null }, uSource: { value: null }, dt: { value: 0.016 }, dissipation: { value: 1.0 },
+  });
+
+  const divergenceMat = prog(`
+    precision highp float;
+    varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
+    uniform sampler2D uVelocity;
+    void main() {
+      float L = texture2D(uVelocity, vL).x;
+      float R = texture2D(uVelocity, vR).x;
+      float T = texture2D(uVelocity, vT).y;
+      float B = texture2D(uVelocity, vB).y;
+      float div = 0.5 * (R - L + T - B);
+      gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
+    }`, { uVelocity: { value: null } });
+
+  const curlMat = prog(`
+    precision highp float;
+    varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
+    uniform sampler2D uVelocity;
+    void main() {
+      float L = texture2D(uVelocity, vL).y;
+      float R = texture2D(uVelocity, vR).y;
+      float T = texture2D(uVelocity, vT).x;
+      float B = texture2D(uVelocity, vB).x;
+      gl_FragColor = vec4(0.5 * (R - L - T + B), 0.0, 0.0, 1.0);
+    }`, { uVelocity: { value: null } });
+
+  const vorticityMat = prog(`
+    precision highp float;
+    varying vec2 vUv; varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
+    uniform sampler2D uVelocity; uniform sampler2D uCurl;
+    uniform float curl; uniform float dt;
+    void main() {
+      float L = texture2D(uCurl, vL).x;
+      float R = texture2D(uCurl, vR).x;
+      float T = texture2D(uCurl, vT).x;
+      float B = texture2D(uCurl, vB).x;
+      float C = texture2D(uCurl, vUv).x;
+      vec2 force = 0.5 * vec2(abs(T) - abs(B), abs(R) - abs(L));
+      force /= length(force) + 0.0001;
+      force *= curl * C;
+      force.y *= -1.0;
+      vec2 vel = texture2D(uVelocity, vUv).xy;
+      gl_FragColor = vec4(vel + force * dt, 0.0, 1.0);
+    }`, { uVelocity: { value: null }, uCurl: { value: null }, curl: { value: CURL }, dt: { value: 0.016 } });
+
+  const pressureMat = prog(`
+    precision highp float;
+    varying vec2 vUv; varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
+    uniform sampler2D uPressure; uniform sampler2D uDivergence;
+    void main() {
+      float L = texture2D(uPressure, vL).x;
+      float R = texture2D(uPressure, vR).x;
+      float T = texture2D(uPressure, vT).x;
+      float B = texture2D(uPressure, vB).x;
+      float div = texture2D(uDivergence, vUv).x;
+      gl_FragColor = vec4((L + R + B + T - div) * 0.25, 0.0, 0.0, 1.0);
+    }`, { uPressure: { value: null }, uDivergence: { value: null } });
+
+  const gradientMat = prog(`
+    precision highp float;
+    varying vec2 vUv; varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
+    uniform sampler2D uPressure; uniform sampler2D uVelocity;
+    void main() {
+      float L = texture2D(uPressure, vL).x;
+      float R = texture2D(uPressure, vR).x;
+      float T = texture2D(uPressure, vT).x;
+      float B = texture2D(uPressure, vB).x;
+      vec2 vel = texture2D(uVelocity, vUv).xy;
+      vel -= vec2(R - L, T - B);
+      gl_FragColor = vec4(vel, 0.0, 1.0);
+    }`, { uPressure: { value: null }, uVelocity: { value: null } });
+
+  const clearMat = prog(`
+    precision highp float;
+    varying vec2 vUv;
+    uniform sampler2D uTexture; uniform float value;
+    void main() { gl_FragColor = value * texture2D(uTexture, vUv); }`, {
+    uTexture: { value: null }, value: { value: PRESSURE_DECAY },
+  });
+
+  const displayMat = new THREE.ShaderMaterial({
+    uniforms: { uTexture: { value: null }, uInk: { value: INK } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy,0.0,1.0); }`,
+    fragmentShader: `
+      precision highp float;
+      varying vec2 vUv;
+      uniform sampler2D uTexture; uniform vec3 uInk;
+      void main() {
+        float a = clamp(texture2D(uTexture, vUv).r, 0.0, 1.0);
+        gl_FragColor = vec4(uInk * a, a); // premultiplied ink over paper
+      }`,
+    depthTest: false, depthWrite: false, blending: THREE.NoBlending, transparent: true,
+  });
+
+  function blit(target, material) {
+    quad.material = material;
+    renderer.setRenderTarget(target);
+    renderer.render(scene, camera);
+  }
+
+  /* ---- input → splats ---- */
+  const pointer = { x: 0.5, y: 0.5, dx: 0, dy: 0, moved: false };
+  function onMove(e) {
+    const x = e.clientX / window.innerWidth;
+    const y = 1.0 - e.clientY / window.innerHeight;
+    pointer.dx = (x - pointer.x) * SPLAT_FORCE;
+    pointer.dy = (y - pointer.y) * SPLAT_FORCE;
+    pointer.x = x; pointer.y = y; pointer.moved = true;
+  }
+  window.addEventListener('mousemove', onMove);
+
+  function splat(x, y, dx, dy, r, g, b) {
+    const aspect = window.innerWidth / window.innerHeight;
+    splatMat.uniforms.aspectRatio.value = aspect;
+    splatMat.uniforms.point.value.set(x, y);
+    splatMat.uniforms.radius.value = SPLAT_RADIUS * (aspect > 1 ? aspect : 1);
+    // velocity
+    splatMat.uniforms.uTarget.value = velocity.read.texture;
+    splatMat.uniforms.color.value.set(dx, dy, 0);
+    splatMat.uniforms.texelSize.value.copy(velTexel);
+    blit(velocity.write, splatMat); velocity.swap();
+    // dye (ink)
+    splatMat.uniforms.uTarget.value = dye.read.texture;
+    splatMat.uniforms.color.value.set(r, g, b);
+    blit(dye.write, splatMat); dye.swap();
+  }
+
+  /* ---- one simulation step ---- */
+  function step(dt) {
+    advectionMat.uniforms.texelSize.value.copy(velTexel);
+    divergenceMat.uniforms.texelSize.value.copy(velTexel);
+    curlMat.uniforms.texelSize.value.copy(velTexel);
+    vorticityMat.uniforms.texelSize.value.copy(velTexel);
+    pressureMat.uniforms.texelSize.value.copy(velTexel);
+    gradientMat.uniforms.texelSize.value.copy(velTexel);
+
+    // curl
+    curlMat.uniforms.uVelocity.value = velocity.read.texture;
+    blit(curlRT, curlMat);
+    // vorticity confinement
+    vorticityMat.uniforms.uVelocity.value = velocity.read.texture;
+    vorticityMat.uniforms.uCurl.value = curlRT.texture;
+    vorticityMat.uniforms.dt.value = dt;
+    blit(velocity.write, vorticityMat); velocity.swap();
+    // divergence
+    divergenceMat.uniforms.uVelocity.value = velocity.read.texture;
+    blit(divergence, divergenceMat);
+    // decay pressure
+    clearMat.uniforms.uTexture.value = pressure.read.texture;
+    blit(pressure.write, clearMat); pressure.swap();
+    // pressure solve (Jacobi)
+    pressureMat.uniforms.uDivergence.value = divergence.texture;
+    for (let i = 0; i < PRESSURE_ITER; i++) {
+      pressureMat.uniforms.uPressure.value = pressure.read.texture;
+      blit(pressure.write, pressureMat); pressure.swap();
+    }
+    // subtract pressure gradient → divergence-free velocity
+    gradientMat.uniforms.uPressure.value = pressure.read.texture;
+    gradientMat.uniforms.uVelocity.value = velocity.read.texture;
+    blit(velocity.write, gradientMat); velocity.swap();
+    // advect velocity
+    advectionMat.uniforms.uVelocity.value = velocity.read.texture;
+    advectionMat.uniforms.uSource.value = velocity.read.texture;
+    advectionMat.uniforms.dt.value = dt;
+    advectionMat.uniforms.dissipation.value = VEL_DISS;
+    blit(velocity.write, advectionMat); velocity.swap();
+    // advect dye
+    advectionMat.uniforms.uVelocity.value = velocity.read.texture;
+    advectionMat.uniforms.uSource.value = dye.read.texture;
+    advectionMat.uniforms.dissipation.value = DYE_DISS;
+    blit(dye.write, advectionMat); dye.swap();
+  }
+
+  function resize() {
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    initFBOs();
+  }
+
+  let last = performance.now();
+  let exciteCooldown = 0;
+  function frame() {
+    const now = performance.now();
+    const dt = Math.min(0.016, (now - last) / 1000);
+    last = now;
+
+    if (pointer.moved) {
+      splat(pointer.x, pointer.y, pointer.dx, pointer.dy, INK_AMT, INK_AMT, INK_AMT);
+      pointer.moved = false;
+    }
+    // Voice tie-in: while excited/speaking, gently breathe ink at center.
+    exciteCooldown -= dt;
+    if (excitement > 0.4 && exciteCooldown <= 0) {
+      const a = Math.random() * Math.PI * 2;
+      splat(0.5, 0.5, Math.cos(a) * 1200 * excitement, Math.sin(a) * 1200 * excitement,
+            INK_AMT * 0.6, INK_AMT * 0.6, INK_AMT * 0.6);
+      exciteCooldown = 0.12;
+    }
+
+    step(dt);
+
+    displayMat.uniforms.uTexture.value = dye.read.texture;
+    blit(null, displayMat);
+
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  frame();
+}
+
+/* ============================================================
    THE ENTITY — Three.js noise-displaced torus
    A fluid ring (Siri/Gemini style): a TorusGeometry whose
    vertices are pushed around by 3D Simplex noise each frame,
@@ -789,27 +1193,11 @@ function setupEntity() {
   const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
   camera.position.set(0, 0, 22);
 
-  /* ---- Lighting: ambient + three colored point lights ---- */
-  scene.add(new THREE.AmbientLight(0x223344, 0.6));
+  /* ---- Matte ink: a custom unlit shader. No scene lights needed;
+         silhouette feathers via a view-facing (rim) term so the ring
+         edges bleed softly like wet ink on paper. ---- */
 
-  const lightWhite = new THREE.PointLight(0xffffff, 1.1, 200);
-  lightWhite.position.set(0, 12, 18);
-  scene.add(lightWhite);
-
-  const lightBlue = new THREE.PointLight(0x3fa9ff, 1.4, 200);
-  lightBlue.position.set(-16, -6, 12);
-  scene.add(lightBlue);
-
-  const lightTeal = new THREE.PointLight(0x2bf0d0, 1.2, 200);
-  lightTeal.position.set(16, 6, 10);
-  scene.add(lightTeal);
-
-  // A soft magenta rim light for richness when speaking
-  const lightRim = new THREE.PointLight(0xff4d8d, 0.0, 200);
-  lightRim.position.set(0, -14, 14);
-  scene.add(lightRim);
-
-  /* ---- Geometry: a torus with per-vertex color attribute ---- */
+  /* ---- Geometry: a torus with a per-vertex ink-density attribute ---- */
   const TUBE_SEGMENTS = 200;   // around the ring (smoothness of the circle)
   const RADIAL_SEGMENTS = 44;  // around the tube
   const RING_RADIUS = 7;
@@ -827,21 +1215,47 @@ function setupEntity() {
   const colors = new Float32Array(vertexCount * 3);
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-  const material = new THREE.MeshStandardMaterial({
-    vertexColors: true,
-    roughness: 0.32,
-    metalness: 0.78,
-    emissive: new THREE.Color(0x05202a),
-    emissiveIntensity: 0.5,
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      uInk: { value: new THREE.Color(0x17140f) },
+      uOpacity: { value: 0.92 },
+    },
+    vertexShader: `
+      attribute vec3 color;          // .r carries ink density (0..1)
+      varying float vDensity;
+      varying float vRim;
+      void main() {
+        vDensity = color.r;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vec3 n = normalize(normalMatrix * normal);
+        vRim = abs(dot(n, normalize(-mv.xyz)));
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      precision highp float;
+      uniform vec3 uInk;
+      uniform float uOpacity;
+      varying float vDensity;
+      varying float vRim;
+      void main() {
+        float core = smoothstep(0.05, 0.5, vRim);   // feather the silhouette
+        float dens = 0.70 + 0.30 * vDensity;          // subtle ink mottle
+        gl_FragColor = vec4(uInk, core * dens * uOpacity);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
   });
 
   const torus = new THREE.Mesh(geometry, material);
   torus.rotation.x = 0; // front-facing: donut hole points at the camera
   scene.add(torus);
 
-  /* A faint wireframe ghost just behind, for depth */
+  /* A faint ink ghost just behind, for depth */
   const ghostMat = new THREE.MeshBasicMaterial({
-    color: 0x1a4a55, wireframe: true, transparent: true, opacity: 0.08,
+    color: 0x17140f, wireframe: true, transparent: true, opacity: 0.05,
   });
   const ghost = new THREE.Mesh(geometry, ghostMat);
   torus.add(ghost);
@@ -850,13 +1264,9 @@ function setupEntity() {
   /* ---- Noise (inlined 3D simplex — no external dependency) ---- */
   const simplex = makeSimplex3D();
 
-  /* Two color endpoints we interpolate between via noise.
-     Base = deep teal, Peak = bright aqua. These shift with mood. */
-  const colBase = new THREE.Color(0x0a7f8c);
-  const colPeak = new THREE.Color(0x6cf2e4);
-  const colHot  = new THREE.Color(0xff5fae); // injected when excited/speaking
-  const tmpA = new THREE.Color();
-  const tmpB = new THREE.Color();
+  /* The per-vertex 'color' attribute now carries a single ink-density
+     value (in .r), derived from the same noise field that displaces the
+     surface — denser ink in the troughs, lighter on the crests. */
 
   const pos = geometry.attributes.position;
   const nrm = geometry.attributes.normal;
@@ -886,16 +1296,22 @@ function setupEntity() {
     camera.updateProjectionMatrix();
   }
 
+  let dispEnergy = 0;
   function animate() {
     const level = getVoiceLevel();
-    const energy = Math.max(level, excitement * 0.55);
+    const targetEnergy = Math.max(level, excitement * 0.55);
 
-    // Time advances faster with energy — the ring "boils" when active
-    time += 0.006 + energy * 0.02;
+    // Low-pass the energy so the orb swells and ebbs like fluid rather than
+    // jolting on every syllable — the speaking motion stays soft and flowing.
+    dispEnergy += (targetEnergy - dispEnergy) * 0.05;
+    const energy = dispEnergy;
 
-    // Displacement amplitude grows with voice (kept under tube radius
-    // headroom so the surface ripples without tearing through itself)
-    const amp = 0.7 + energy * 1.9;
+    // Time advances faster with energy — the ring "boils" gently when active
+    time += 0.006 + energy * 0.018;
+
+    // Displacement amplitude grows with voice (eased low so the surface
+    // undulates softly instead of spiking; stays within tube headroom)
+    const amp = 0.7 + energy * 1.25;
     // Spatial frequency of the noise
     const freq = 0.18;
 
@@ -921,17 +1337,11 @@ function setupEntity() {
       pos.array[ix + 1] = by + n.y * disp;
       pos.array[ix + 2] = bz + n.z * disp;
 
-      // Color: map noise (-1..1) to 0..1 and lerp base->peak
-      const tcol = (noise * 0.5 + 0.5);
-      tmpA.copy(colBase).lerp(colPeak, tcol);
-      // Blend in hot color when excited
-      if (energy > 0.05) {
-        tmpB.copy(tmpA).lerp(colHot, Math.min(0.6, energy * 0.7) * tcol);
-        tmpA.copy(tmpB);
-      }
-      col.array[ix]     = tmpA.r;
-      col.array[ix + 1] = tmpA.g;
-      col.array[ix + 2] = tmpA.b;
+      // Ink density: map noise (-1..1) to 0..1. Troughs read denser.
+      const dens = 1.0 - (noise * 0.5 + 0.5);
+      col.array[ix]     = dens;
+      col.array[ix + 1] = dens;
+      col.array[ix + 2] = dens;
     }
 
     pos.needsUpdate = true;
@@ -942,12 +1352,6 @@ function setupEntity() {
     torus.rotation.z += 0.0016 + energy * 0.004;       // spin in its own plane
     torus.rotation.x = Math.sin(time * 0.18) * 0.06;   // tiny tilt, stays front-facing
     torus.rotation.y = Math.cos(time * 0.14) * 0.06;
-
-    // Rim light glows when speaking
-    lightRim.intensity = energy * 1.6;
-    // Lights drift subtly for living shimmer
-    lightBlue.position.x = -16 + Math.sin(time * 0.5) * 4;
-    lightTeal.position.x = 16 + Math.cos(time * 0.4) * 4;
 
     excitement *= 0.965;
     if (excitement < 0.015) excitement = 0;
@@ -983,14 +1387,15 @@ function setupMesh() {
   }
 
   function spawn() {
-    const n = Math.min(110, Math.max(40, Math.floor(W * H / 22000)));
+    const n = Math.min(70, Math.max(28, Math.floor(W * H / 34000)));
     particles = Array.from({ length: n }, () => ({
       x: Math.random() * W,
       y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.22,
-      vy: (Math.random() - 0.5) * 0.22,
-      size: 0.7 + Math.random() * 1.0,
+      vx: (Math.random() - 0.5) * 0.16,
+      vy: (Math.random() - 0.5) * 0.16,
+      size: 0.6 + Math.pow(Math.random(), 2.2) * 3.2, // mostly tiny specks, a few blots
       twinkle: Math.random() * Math.PI * 2,
+      alpha: 0.06 + Math.random() * 0.16,
     }));
   }
 
@@ -1034,32 +1439,19 @@ function setupMesh() {
       if (p.y > H + 5) p.y = -5;
     });
 
-    const threshold = 130 + energy * 50;
-    for (let i = 0; i < particles.length; i++) {
-      const p = particles[i];
-      for (let j = i + 1; j < particles.length; j++) {
-        const q = particles[j];
-        const dx = p.x - q.x;
-        const dy = p.y - q.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < threshold) {
-          const fade = 1 - dist / threshold;
-          const alpha = fade * (0.1 + energy * 0.3);
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(q.x, q.y);
-          ctx.strokeStyle = `rgba(168, 224, 216, ${alpha})`;
-          ctx.lineWidth = 0.5 + fade * 0.3;
-          ctx.stroke();
-        }
-      }
-    }
-
+    // Soft ink specks — radial gradient blots that bleed into the paper.
     particles.forEach(p => {
-      const tw = Math.sin(p.twinkle) * 0.2 + 0.8;
+      const tw = Math.sin(p.twinkle) * 0.12 + 0.9;
+      const r = (p.size + energy * 0.6) * tw;
+      const a = Math.min(0.5, p.alpha * (1 + energy * 0.8));
+      const outer = r * 2.2;
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, outer);
+      g.addColorStop(0, `rgba(23, 20, 15, ${a})`);
+      g.addColorStop(0.5, `rgba(23, 20, 15, ${a * 0.4})`);
+      g.addColorStop(1, 'rgba(23, 20, 15, 0)');
       ctx.beginPath();
-      ctx.arc(p.x, p.y, (p.size + energy * 0.5) * tw, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(168, 224, 216, ${0.32 + energy * 0.3})`;
+      ctx.arc(p.x, p.y, outer, 0, Math.PI * 2);
+      ctx.fillStyle = g;
       ctx.fill();
     });
 
@@ -1099,6 +1491,8 @@ document.querySelectorAll('.rail-icon').forEach(el => {
 });
 
 setupVoice();
+setupCursor();
+setupFluid();
 setupEntity();
 setupMesh();
 addLog('Ready');
