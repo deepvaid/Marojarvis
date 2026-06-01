@@ -197,6 +197,15 @@
     display: block;
   }
 
+  /* ============ OIL-ON-WATER BACKGROUND ============ */
+  #oilCanvas {
+    position: fixed; inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    width: 100%; height: 100%;
+    display: block;
+  }
+
   /* ============ INK BACKGROUND ============ */
   #inkCanvas {
     position: fixed; inset: 0;
@@ -380,6 +389,7 @@
 <div class="bg-vignette"></div>
 <div class="bg-grain"></div>
 
+<canvas id="oilCanvas"></canvas>
 <canvas id="inkCanvas"></canvas>
 
 <div class="topbar">
@@ -832,6 +842,138 @@ function setupCursor() {
   window.addEventListener('resize', resize);
   resize();
   draw();
+}
+
+/* ============================================================
+   OIL ON WATER — ambient background marbling.
+   A single full-screen fragment-shader quad rendering
+   domain-warped FBM value noise (IQ-style fbm(p+fbm(p+fbm(p)))),
+   drifting slowly on its own and warping locally around the
+   cursor so the marbling ripples as the pointer passes. Tonal
+   only: mapped into the existing cream/ink sepia palette so it
+   reads as living paper, never color. Sits behind everything
+   (z-index 0) beneath the vignette, grain and ink strokes.
+   ============================================================ */
+const OIL_FRAG = `
+  precision highp float;
+  varying vec2 vUv;
+  uniform float uTime;
+  uniform vec2 uRes;
+  uniform vec2 uMouse;     // normalized 0..1, y up
+  uniform float uMouseAmp; // recent-movement strength, decays to 0
+
+  float hash(vec2 p) {
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+  }
+  float noise(vec2 p) {
+    vec2 i = floor(p), f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    float a = hash(i);
+    float b = hash(i + vec2(1.0, 0.0));
+    float c = hash(i + vec2(0.0, 1.0));
+    float d = hash(i + vec2(1.0, 1.0));
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+  }
+  float fbm(vec2 p) {
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 5; i++) {
+      v += a * noise(p);
+      p *= 2.0;
+      a *= 0.5;
+    }
+    return v;
+  }
+
+  void main() {
+    float aspect = uRes.x / uRes.y;
+    vec2 p = vUv;
+    p.x *= aspect;
+    p *= 2.2;                       // scale of the marbling
+    float t = uTime * 0.04;         // slow ambient drift
+
+    // Cursor warp: push the domain around the pointer, fading with
+    // distance and with the recent-movement amplitude.
+    vec2 m = uMouse; m.x *= aspect;
+    vec2 toM = p - m;
+    float d = length(toM);
+    vec2 warp = (toM / (d + 0.001)) * uMouseAmp * exp(-d * 1.8) * 0.5;
+
+    // Domain warping (Inigo Quilez).
+    vec2 q = vec2(fbm(p + t),
+                  fbm(p + vec2(5.2, 1.3) - t));
+    vec2 r = vec2(fbm(p + 4.0 * q + vec2(1.7, 9.2) + t * 0.7 + warp),
+                  fbm(p + 4.0 * q + vec2(8.3, 2.8) - t * 0.6 + warp));
+    float f = fbm(p + 4.0 * r);
+    f = smoothstep(0.0, 1.0, f);
+
+    // Tonal sepia only — cream <-> soft, faint ink in deepest troughs.
+    vec3 cream = vec3(0.937, 0.914, 0.867); // #efe9dd
+    vec3 soft  = vec3(0.902, 0.875, 0.816); // #e6dfd0
+    vec3 deep  = vec3(0.090, 0.078, 0.059); // #17140f
+    vec3 col = mix(soft, cream, f);
+    col = mix(col, deep, smoothstep(0.75, 1.0, 1.0 - f) * 0.12);
+
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+function setupOilFluid() {
+  const canvas = $('oilCanvas');
+  if (typeof THREE === 'undefined') return;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: false });
+  renderer.setPixelRatio(1);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.Camera();
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+  quad.frustumCulled = false;
+  scene.add(quad);
+
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uRes: { value: new THREE.Vector2() },
+      uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+      uMouseAmp: { value: 0 },
+    },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+    fragmentShader: OIL_FRAG,
+    depthTest: false, depthWrite: false,
+  });
+  quad.material = mat;
+
+  // Smoothed cursor + a movement amplitude that spikes on motion and
+  // decays, giving ripples that follow then relax.
+  let mx = 0.5, my = 0.5, tmx = 0.5, tmy = 0.5, amp = 0;
+  window.addEventListener('mousemove', e => {
+    const nx = e.clientX / window.innerWidth;
+    const ny = 1.0 - e.clientY / window.innerHeight;
+    amp = Math.min(1, amp + Math.hypot(nx - tmx, ny - tmy) * 6);
+    tmx = nx; tmy = ny;
+  });
+
+  function resize() {
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    mat.uniforms.uRes.value.set(window.innerWidth, window.innerHeight);
+  }
+
+  const t0 = performance.now();
+  function frame() {
+    mx += (tmx - mx) * 0.08;
+    my += (tmy - my) * 0.08;
+    amp *= 0.94;
+    mat.uniforms.uTime.value = (performance.now() - t0) / 1000;
+    mat.uniforms.uMouse.value.set(mx, my);
+    mat.uniforms.uMouseAmp.value = amp;
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  frame();
 }
 
 /* ============================================================
@@ -1492,6 +1634,7 @@ document.querySelectorAll('.rail-icon').forEach(el => {
 
 setupVoice();
 setupCursor();
+setupOilFluid();
 setupFluid();
 setupEntity();
 setupMesh();
