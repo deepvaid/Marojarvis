@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA — AI Entity</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#ffffff; --ink:#2b2f36; --dim:#9aa3ad; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; }
+  body { background:var(--bg); color:var(--ink); font-family:'IBM Plex Mono',monospace; min-height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; position:relative; padding:24px; }
+  body::before { content:""; position:fixed; inset:0; pointer-events:none;
+    background:radial-gradient(1200px 800px at 50% 46%, transparent 62%, rgba(43,47,54,0.03) 100%); }
+  .hud-top { position:fixed; top:22px; left:0; right:0; display:flex; justify-content:space-between;
+    padding:0 26px; font-size:11px; letter-spacing:0.28em; color:var(--dim); text-transform:uppercase; pointer-events:none; }
+  .hud-top .dot { color:var(--ink); animation:blink 2.6s infinite; }
+  @keyframes blink { 0%,70%{opacity:1} 85%{opacity:0.2} 100%{opacity:1} }
+  .stage { position:relative; width:min(82vw,600px); height:min(82vw,600px); display:grid; place-items:center; }
+  #orb { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .core { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:min(64%,360px); text-align:center; pointer-events:auto; z-index:2; }
+  .core-label { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.22em; text-transform:uppercase; color:var(--dim); margin-bottom:10px; }
+  .core-input { width:100%; background:transparent; border:0; border-bottom:1px solid rgba(43,47,54,0.28); outline:0;
+    text-align:center; font-family:'Chakra Petch',sans-serif; font-size:clamp(13px,2vw,16px); color:var(--ink); padding:6px 2px; }
+  .core-input::placeholder { color:var(--dim); font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.06em; }
+  .core-input:focus { border-bottom-color:var(--ink); }
+  .caption { margin-top:24px; text-align:center; font-family:'Chakra Petch',sans-serif; }
+  .caption h1 { font-size:clamp(20px,3.4vw,28px); font-weight:700; letter-spacing:0.4em; color:var(--ink); margin-left:0.4em; }
+  .caption .state { margin-top:6px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.32em; color:var(--dim); text-transform:uppercase; min-height:14px; }
+  .console { margin-top:24px; width:min(94vw,640px); display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .field { flex:1 1 320px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid rgba(43,47,54,0.18); border-radius:2px; padding:0 14px; }
+  .field span { color:var(--ink); font-size:13px; }
+  .field input { flex:1; background:transparent; border:0; outline:0; color:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:14px; padding:14px 0; }
+  .field input::placeholder { color:var(--dim); }
+  button { font-family:'Chakra Petch',sans-serif; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; font-size:12px;
+    color:#fff; background:#3c424b; border:0; border-radius:2px; padding:14px 22px; cursor:pointer; transition:transform .12s,box-shadow .2s,background .2s; }
+  button:hover { background:#21252b; box-shadow:0 6px 22px rgba(43,47,54,0.22); transform:translateY(-1px); }
+  button:active { transform:translateY(0); }
+  button.ghost { background:#fff; color:#3c424b; border:1px solid rgba(43,47,54,0.25); }
+  button.ghost:hover { background:#f2f3f5; }
+  button.ghost.live { color:#fff; background:#3c424b; }
+  select { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink); background:#fff;
+    border:1px solid rgba(43,47,54,0.18); border-radius:2px; padding:13px 12px; max-width:230px; cursor:pointer; }
+  .hint { margin-top:16px; font-size:11px; color:var(--dim); letter-spacing:0.14em; text-align:center; max-width:560px; }
+  .vname { font-size:11px; color:var(--dim); letter-spacing:0.12em; margin-top:8px; }
+  .panel { margin-top:18px; width:min(94vw,640px); border:1px solid rgba(43,47,54,0.14); border-radius:3px; padding:14px; background:#fcfcfd; }
+  .prow { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  .prow:last-child { margin-bottom:0; }
+  .prow label { font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); min-width:96px; }
+  .panel input { flex:1 1 240px; min-width:0; background:#fff; border:1px solid rgba(43,47,54,0.18); border-radius:2px;
+    padding:11px 12px; font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--ink); outline:0; }
+  .panel select { flex:1 1 200px; }
+  button.small { padding:11px 16px; font-size:11px; }
+  .elbox { margin-top:10px; padding-top:10px; border-top:1px dashed rgba(43,47,54,0.14); }
+  .elnote { font-size:10px; color:var(--dim); letter-spacing:0.1em; margin-top:4px; }
+  @media (max-width:520px) {
+    .core { width:58%; }
+    .core-label { font-size:9px; letter-spacing:0.14em; line-height:1.45; }
+    .core-input { font-size:13px; }
+    .core-input::placeholder { font-size:10px; letter-spacing:0.03em; }
+  }
+</style>
+</head>
+<body>
+  <div class="hud-top"><span><span class="dot">●</span> SYS / ONLINE</span><span id="clock">--:--:--</span></div>
+  <div class="stage">
+    <canvas id="orb"></canvas>
+    <div class="core">
+      <div class="core-label">What would you like to do today?</div>
+      <input id="text" class="core-input" type="text" placeholder="type here, then press Enter" autocomplete="off">
+    </div>
+  </div>
+  <div class="caption"><h1>ARIA</h1><div class="state" id="state">standby</div></div>
+  <div class="console">
+    <select id="voice" title="Voice"><option>loading voices…</option></select>
+    <button id="speak">Speak</button>
+    <button id="mic" class="ghost">Listen</button>
+  </div>
+  <div class="vname" id="vname">voice: detecting…</div>
+  <div class="hint">Type your intent in the centre, then press Enter or Speak · Listen reacts to your mic</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+const canvas=document.getElementById('orb');
+const stateEl=document.getElementById('state'), clockEl=document.getElementById('clock'), vnameEl=document.getElementById('vname');
+const TAU=Math.PI*2;
+const AUDIO_BANDS=16;
+const PHYS_SEGMENTS=48;
+
+let speaking=false, listening=false, speakEnergy=0, micLevel=0, agit=0;
+let analyser=null, freqData=null, audioCtx=null, micStream=null;
+const audioBands=new Float32Array(AUDIO_BANDS);
+const membraneWave=new Float32Array(PHYS_SEGMENTS);
+const membraneVelocity=new Float32Array(PHYS_SEGMENTS);
+const membraneForce=new Float32Array(PHYS_SEGMENTS);
+const membraneFlux=new Float32Array(PHYS_SEGMENTS);
+const nextWave=new Float32Array(PHYS_SEGMENTS);
+const nextVelocity=new Float32Array(PHYS_SEGMENTS);
+const pointerField={active:false,theta:0,radius:0,velocity:0,lastX:0,lastY:0,lastT:0};
+let nextImpulseAt=0, lastFrameTime=0, pointerCool=0;
+function setState(t){ stateEl.textContent=t; }
+
+const renderer=new THREE.WebGLRenderer({canvas, antialias:true, alpha:true, powerPreference:'high-performance'});
+renderer.setClearColor(0xffffff,0);
+const scene=new THREE.Scene();
+const camera=new THREE.OrthographicCamera(-1,1,1,-1,0,4);
+camera.position.z=1;
+
+const PARTICLES=72000;
+const positions=new Float32Array(PARTICLES*3);
+const angles=new Float32Array(PARTICLES);
+const baseRadius=new Float32Array(PARTICLES);
+const seeds=new Float32Array(PARTICLES);
+const bands=new Float32Array(PARTICLES);
+const bursts=new Float32Array(PARTICLES);
+const gains=new Float32Array(PARTICLES);
+
+for(let i=0;i<PARTICLES;i++){
+  const pick=Math.random();
+  const bandRand=Math.random();
+  const angle=Math.random()*TAU;
+  let radius, band, burst;
+
+  if(pick<0.64){
+    radius=0.595+Math.pow(bandRand,0.82)*0.063;
+    band=0.0;
+    burst=Math.random()*0.18;
+  }else if(pick<0.93){
+    radius=0.636+Math.pow(bandRand,1.65)*0.185;
+    band=1.0;
+    burst=Math.random()*0.62;
+  }else{
+    radius=0.665+Math.pow(bandRand,1.08)*0.225;
+    band=2.0;
+    burst=0.48+Math.random()*0.52;
+  }
+
+  angles[i]=angle;
+  baseRadius[i]=radius;
+  seeds[i]=Math.random()*1000.0;
+  bands[i]=band;
+  bursts[i]=burst;
+  gains[i]=0.45+Math.random()*0.75;
+}
+
+const geo=new THREE.BufferGeometry();
+geo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+geo.setAttribute('aAngle', new THREE.BufferAttribute(angles,1));
+geo.setAttribute('aBaseRadius', new THREE.BufferAttribute(baseRadius,1));
+geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds,1));
+geo.setAttribute('aBand', new THREE.BufferAttribute(bands,1));
+geo.setAttribute('aBurst', new THREE.BufferAttribute(bursts,1));
+geo.setAttribute('aGain', new THREE.BufferAttribute(gains,1));
+
+const uniforms={
+  uTime:{value:0},
+  uAgit:{value:0},
+  uSpeakEnergy:{value:0},
+  uMicLevel:{value:0},
+  uAspect:{value:1},
+  uRadius:{value:0.64},
+  uDpr:{value:1},
+  uAudio:{value:audioBands},
+  uWave:{value:membraneWave},
+  uFlux:{value:membraneFlux}
+};
+
+const membraneMat=new THREE.ShaderMaterial({
+  uniforms,
+  vertexShader:`
+    precision highp float;
+    attribute float aAngle;
+    attribute float aBaseRadius;
+    attribute float aSeed;
+    attribute float aBand;
+    attribute float aBurst;
+    attribute float aGain;
+    uniform float uTime;
+    uniform float uAgit;
+    uniform float uSpeakEnergy;
+    uniform float uMicLevel;
+    uniform float uAspect;
+    uniform float uRadius;
+    uniform float uDpr;
+    uniform float uAudio[16];
+    uniform float uWave[48];
+    uniform float uFlux[48];
+    varying float vAlpha;
+    varying float vInk;
+    varying float vSeed;
+
+    float hash(float n){ return fract(sin(n)*43758.5453123); }
+    float noise(float x){
+      float i=floor(x);
+      float f=fract(x);
+      f=f*f*(3.0-2.0*f);
+      return mix(hash(i),hash(i+1.0),f);
+    }
+    float audioAt(float x){
+      float v=0.0;
+      for(int i=0;i<16;i++){
+        float center=(float(i)+0.5)/16.0;
+        float d=abs(fract(x-center+0.5)-0.5)*16.0;
+        v+=uAudio[i]*max(0.0,1.0-d);
+      }
+      return clamp(v,0.0,1.0);
+    }
+    float waveAt(float x){
+      float v=0.0;
+      for(int i=0;i<48;i++){
+        float center=(float(i)+0.5)/48.0;
+        float d=abs(fract(x-center+0.5)-0.5)*48.0;
+        v+=uWave[i]*max(0.0,1.0-d);
+      }
+      return v;
+    }
+    float fluxAt(float x){
+      float v=0.0;
+      for(int i=0;i<48;i++){
+        float center=(float(i)+0.5)/48.0;
+        float d=abs(fract(x-center+0.5)-0.5)*48.0;
+        v+=uFlux[i]*max(0.0,1.0-d);
+      }
+      return clamp(v,0.0,1.0);
+    }
+
+    void main(){
+      float t=uTime;
+      float angle=aAngle;
+      float theta=angle/6.28318530718;
+      float audio=audioAt(theta);
+      float wave=waveAt(theta);
+      float flux=fluxAt(theta);
+      float outWave=max(0.0,wave);
+      float absWave=abs(wave);
+      float impact=max(flux,audio*0.9);
+      float smoke=smoothstep(0.5,1.5,aBand);
+      float hair=smoothstep(1.5,2.0,aBand);
+
+      float organic=(noise(theta*5.0+t*0.075+aSeed*0.010)-0.5)*0.012;
+      organic+=(noise(theta*13.0-t*0.115+aSeed*0.017)-0.5)*0.007;
+      float breath=sin(t*0.82+aSeed*0.035)*0.004;
+      float membrane=wave*(0.130+smoke*0.190+hair*0.255)*aGain;
+      float flutter=sin(t*(5.0+uAgit*7.0)+aSeed*0.13+angle*2.0)*0.0045*flux;
+
+      float smokeLift=(noise(theta*23.0+t*0.18+aSeed*0.023)-0.34)*(0.013+uAgit*0.022+flux*0.044);
+      float hairLift=aBurst*(0.018+0.160*outWave+0.085*flux);
+      float radius=aBaseRadius+organic+breath+membrane+flutter+audio*0.012*aGain;
+      radius+=smoke*smokeLift;
+      radius+=hair*hairLift;
+
+      float tangent=(noise(aSeed+t*0.16)-0.5)*(0.004+smoke*0.014+flux*0.026);
+      tangent+=wave*0.030*(noise(theta*17.0+aSeed*0.02)-0.5);
+      vec2 radial=vec2(cos(angle),sin(angle));
+      vec2 tang=vec2(-radial.y,radial.x);
+      vec2 pos=radial*radius+tang*tangent;
+      if(uAspect>1.0){ pos.x/=uAspect; } else { pos.y*=uAspect; }
+
+      gl_Position=vec4(pos,0.0,1.0);
+      float size=mix(1.00,2.45,smoke)*uDpr;
+      size*=1.0+flux*1.25+hair*(outWave+flux)*1.05;
+      gl_PointSize=size;
+
+      float ringAlpha=mix(0.105,0.034,smoke);
+      ringAlpha=mix(ringAlpha,0.050,hair);
+      vAlpha=ringAlpha*(0.66+aGain*0.48)*(1.0+flux*1.05+absWave*0.92+hair*aBurst*0.42);
+      vInk=clamp(0.34+flux*0.44+outWave*0.28+hair*0.18+audio*0.18,0.0,1.0);
+      vSeed=aSeed;
+    }`,
+  fragmentShader:`
+    precision highp float;
+    uniform float uTime;
+    varying float vAlpha;
+    varying float vInk;
+    varying float vSeed;
+    float hash(float n){ return fract(sin(n)*43758.5453123); }
+    void main(){
+      vec2 p=gl_PointCoord-0.5;
+      float d=length(p);
+      float disc=1.0-smoothstep(0.08,0.50,d);
+      disc*=0.78+0.22*(1.0-smoothstep(0.0,0.32,d));
+      float grain=0.86+0.14*hash(vSeed+floor(uTime*14.0));
+      vec3 ink=mix(vec3(0.34,0.37,0.41),vec3(0.03,0.035,0.04),vInk);
+      gl_FragColor=vec4(ink,vAlpha*disc*grain);
+    }`,
+  transparent:true,
+  depthTest:false,
+  depthWrite:false,
+  blending:THREE.NormalBlending
+});
+
+const membrane=new THREE.Points(geo,membraneMat);
+scene.add(membrane);
+
+function resize(){
+  const r=canvas.getBoundingClientRect();
+  const w=Math.max(1,r.width), h=Math.max(1,r.height);
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  renderer.setPixelRatio(dpr);
+  renderer.setSize(w,h,false);
+  uniforms.uAspect.value=w/h;
+  uniforms.uDpr.value=dpr;
+}
+window.addEventListener('resize',resize);
+
+function updatePointer(e){
+  const rect=canvas.getBoundingClientRect();
+  const x=((e.clientX-rect.left)/rect.width)*2-1;
+  const y=-(((e.clientY-rect.top)/rect.height)*2-1);
+  const now=performance.now();
+  const dt=pointerField.lastT?Math.max(16,now-pointerField.lastT):16;
+  const dx=x-pointerField.lastX, dy=y-pointerField.lastY;
+  let theta=Math.atan2(y,x)/TAU;
+  if(theta<0) theta+=1;
+  pointerField.active=true;
+  pointerField.theta=theta;
+  pointerField.radius=Math.hypot(x,y);
+  pointerField.velocity=Math.min(1.8,Math.hypot(dx,dy)/(dt/1000));
+  pointerField.lastX=x;
+  pointerField.lastY=y;
+  pointerField.lastT=now;
+  pointerCool=0.55;
+}
+canvas.addEventListener('pointermove',updatePointer,{passive:true});
+canvas.addEventListener('pointerenter',updatePointer,{passive:true});
+canvas.addEventListener('pointerleave',()=>{ pointerField.active=false; },{passive:true});
+
+// ---- voice: prefer NATURAL / neural British male, with a picker ----
+let chosenVoice=null, voices=[];
+const voiceSel=document.getElementById('voice');
+function rankVoice(v){
+  let s=0;
+  if(/online \(natural\)|natural|neural/i.test(v.name)) s+=30;
+  if(/enhanced|premium/i.test(v.name)) s+=18;
+  if(/en[-_]GB/i.test(v.lang)) s+=8;
+  if(/ryan|thomas|arthur|george|daniel|oliver|alfie/i.test(v.name)) s+=6;
+  if(/google uk english male/i.test(v.name)) s+=5;
+  if(/\bmale\b/i.test(v.name)) s+=2;
+  if(/female|sonia|libby|maisie|samantha|zira|hazel|kate|serena/i.test(v.name)) s-=10;
+  if(/^en/i.test(v.lang)) s+=1;
+  return s;
+}
+function refreshVoices(){
+  voices=window.speechSynthesis?window.speechSynthesis.getVoices():[];
+  if(!voices.length) return;
+  voiceSel.innerHTML='';
+  voices.forEach((v,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=`${v.name} (${v.lang})`; voiceSel.appendChild(o); });
+  let best=0,bs=-1e9; voices.forEach((v,i)=>{const r=rankVoice(v); if(r>bs){bs=r;best=i;}});
+  voiceSel.value=best; chosenVoice=voices[best];
+  const natural=/online \(natural\)|natural|neural|enhanced|premium/i.test(chosenVoice.name);
+  vnameEl.textContent=`voice: ${chosenVoice.name} (${chosenVoice.lang})${natural?' · natural':' · basic — try Edge for natural voices'}`;
+}
+if(voiceSel) voiceSel.addEventListener('change',()=>{ chosenVoice=voices[parseInt(voiceSel.value,10)]; vnameEl.textContent=`voice: ${chosenVoice.name} (${chosenVoice.lang})`; });
+if('speechSynthesis' in window){ refreshVoices(); window.speechSynthesis.onvoiceschanged=refreshVoices; }
+
+// ---- voice (built-in browser speech) ----
+const speakBtn=document.getElementById('speak'), textInput=document.getElementById('text');
+let speechVisualTimer=null, speechVisualStarted=0;
+function compose(t){
+  const a=[`Very good. Today's focus: ${t}.`,
+           `Understood. I've set today's plan: ${t}.`,
+           `As you wish. Let's make today count — ${t}.`,
+           `Right away. Today's agenda: ${t}.`,
+           `Noted. We begin with ${t}.`];
+  return a[(Math.random()*a.length)|0];
+}
+
+function beginSpeechVisual(ms){
+  if(speechVisualTimer) clearTimeout(speechVisualTimer);
+  speechVisualStarted=performance.now();
+  speaking=true; setState('speaking');
+  speechVisualTimer=setTimeout(endSpeechVisual,ms);
+}
+function endSpeechVisual(){
+  if(speechVisualTimer) clearTimeout(speechVisualTimer);
+  speechVisualTimer=null;
+  speaking=false;
+  if(!listening) setState('standby');
+}
+function finishSpeechVisual(){
+  const elapsed=performance.now()-speechVisualStarted;
+  const hold=Math.max(360,900-elapsed);
+  if(speechVisualTimer) clearTimeout(speechVisualTimer);
+  speechVisualTimer=setTimeout(endSpeechVisual,hold);
+}
+
+function speakBrowser(text){
+  const visualMs=Math.min(6800,Math.max(1200,text.length*54));
+  if(!('speechSynthesis' in window)){ fakeSpeak(visualMs); return; }
+  try{ window.speechSynthesis.resume(); }catch(e){}
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text); u.rate=0.97; u.pitch=0.96;
+  if(chosenVoice) u.voice=chosenVoice;
+  beginSpeechVisual(visualMs);
+  u.onstart=()=>beginSpeechVisual(visualMs);
+  u.onend=finishSpeechVisual;
+  u.onerror=finishSpeechVisual;
+  window.speechSynthesis.speak(u);
+}
+function fakeSpeak(ms){ beginSpeechVisual(ms); }
+
+function speak(){
+  const raw=textInput.value.trim();
+  const line = raw ? compose(raw) : "I'm online and ready. What would you like to do today?";
+  speakBrowser(line);
+}
+speakBtn.addEventListener('click',speak);
+textInput.addEventListener('keydown',e=>{ if(e.key==='Enter') speak(); });
+
+const micBtn=document.getElementById('mic');
+async function toggleMic(){
+  if(listening){
+    listening=false; micBtn.classList.remove('live'); micBtn.textContent='Listen';
+    if(micStream) micStream.getTracks().forEach(t=>t.stop());
+    if(audioCtx) audioCtx.close();
+    analyser=null; audioCtx=null; micStream=null;
+    if(!speaking) setState('standby');
+    return;
+  }
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const src=audioCtx.createMediaStreamSource(micStream);
+    analyser=audioCtx.createAnalyser(); analyser.fftSize=512; analyser.smoothingTimeConstant=0.68;
+    freqData=new Uint8Array(analyser.frequencyBinCount); src.connect(analyser);
+    listening=true; micBtn.classList.add('live'); micBtn.textContent='Stop'; setState('listening');
+  }catch(err){ setState('mic denied'); setTimeout(()=>{ if(!speaking&&!listening) setState('standby'); },1800); }
+}
+micBtn.addEventListener('click',toggleMic);
+
+function updateAudioBands(time){
+  if(analyser){
+    analyser.getByteFrequencyData(freqData);
+    let sum=0;
+    for(let i=0;i<freqData.length;i++) sum+=freqData[i];
+    micLevel=(sum/freqData.length)/255;
+    for(let b=0;b<AUDIO_BANDS;b++){
+      const idx=Math.min(freqData.length-1,Math.floor(Math.pow((b+0.5)/AUDIO_BANDS,1.42)*freqData.length*0.86));
+      const raw=freqData[idx]/255;
+      const k=raw>audioBands[b]?0.50:0.18;
+      audioBands[b]+=(raw-audioBands[b])*k;
+    }
+  }else{
+    micLevel+=(0-micLevel)*0.10;
+    for(let b=0;b<AUDIO_BANDS;b++){
+      let raw=0.012+0.006*Math.sin(time*0.8+b*0.7);
+      if(speaking){
+        const syllable=Math.abs(Math.sin(time*6.4+b*0.48))*Math.abs(Math.sin(time*2.9+b*1.17));
+        raw=Math.max(raw,speakEnergy*(0.20+0.80*syllable));
+      }
+      const k=raw>audioBands[b]?0.42:0.12;
+      audioBands[b]+=(raw-audioBands[b])*k;
+    }
+  }
+}
+
+function clampValue(v,min,max){ return Math.max(min,Math.min(max,v)); }
+function addMembraneImpulse(center,strength,spread){
+  for(let i=0;i<PHYS_SEGMENTS;i++){
+    let d=Math.abs(i-center);
+    d=Math.min(d,PHYS_SEGMENTS-d);
+    const falloff=Math.exp(-(d*d)/(2*spread*spread));
+    const kick=falloff*strength;
+    membraneVelocity[i]+=kick;
+    membraneForce[i]+=kick*0.42;
+    membraneFlux[i]=Math.max(membraneFlux[i],Math.min(1,falloff*strength*3.8));
+  }
+}
+function updateMembranePhysics(time,dt){
+  const drive=Math.min(1,speakEnergy+micLevel*1.7);
+  pointerCool=Math.max(0,pointerCool-dt);
+  if((pointerField.active || pointerCool>0) && pointerField.radius>0.34 && pointerField.radius<1.03){
+    const center=Math.floor(pointerField.theta*PHYS_SEGMENTS);
+    const radial=Math.max(0,1-Math.abs(pointerField.radius-0.64)/0.38);
+    const strength=(0.018+pointerField.velocity*0.020)*radial*(pointerField.active?1.0:0.45);
+    addMembraneImpulse(center,strength,2.15+radial*1.4);
+  }
+  if(time>=nextImpulseAt){
+    const active=speaking || listening || drive>0.08;
+    if(active || Math.random()<0.42){
+      const sweepRaw=time*0.055+0.17*Math.sin(time*0.37)+Math.random()*0.12;
+      const sweep=sweepRaw-Math.floor(sweepRaw);
+      const center=Math.floor(sweep*PHYS_SEGMENTS);
+      const strength=(0.018+drive*0.155)*(speaking?1.55:1.0);
+      const spread=1.05+drive*1.35+Math.random()*0.45;
+      addMembraneImpulse(center,strength,spread);
+    }
+    nextImpulseAt=time+(speaking?0.10+Math.random()*0.17:(listening?0.18+Math.random()*0.26:0.85+Math.random()*1.35));
+  }
+
+  const stiffness=54+drive*18+pointerCool*16;
+  const tension=13+drive*6;
+  const damping=3.2+drive*1.7;
+  for(let i=0;i<PHYS_SEGMENTS;i++){
+    const l=(i+PHYS_SEGMENTS-1)%PHYS_SEGMENTS;
+    const r=(i+1)%PHYS_SEGMENTS;
+    const audioIdx=Math.min(AUDIO_BANDS-1,Math.floor((i/PHYS_SEGMENTS)*AUDIO_BANDS));
+    const shiftedIdx=(audioIdx+Math.floor(AUDIO_BANDS*0.33))%AUDIO_BANDS;
+    const localAudio=audioBands[audioIdx]*0.75+audioBands[shiftedIdx]*0.25;
+    const syllableProfile=0.35+0.65*Math.pow(0.5+0.5*Math.sin(time*0.90+i*0.47),2);
+    const syllable=speaking?speakEnergy*(0.55+0.45*Math.sin(time*5.8+i*0.34))*syllableProfile:0;
+    const slowEddy=0.004*Math.sin(time*0.62+i*0.43)+0.003*Math.sin(time*0.91+i*0.81);
+    const idle=slowEddy+0.002*Math.sin(time*1.7+i*0.17+membraneWave[l]*8.0);
+    const lap=membraneWave[l]+membraneWave[r]-2*membraneWave[i];
+    const curvature=(membraneWave[(i+2)%PHYS_SEGMENTS]+membraneWave[(i+PHYS_SEGMENTS-2)%PHYS_SEGMENTS]-2*membraneWave[i])*0.35;
+    const source=membraneForce[i]+localAudio*(0.025+drive*0.070)+syllable*0.010+idle;
+    const accel=(lap+curvature)*stiffness-membraneWave[i]*tension-membraneVelocity[i]*damping+source*(24+drive*28);
+    let vel=membraneVelocity[i]+accel*dt;
+    let wave=membraneWave[i]+vel*dt;
+    if(wave>0.23){ wave=0.23; vel*=0.45; }
+    if(wave<-0.15){ wave=-0.15; vel*=0.45; }
+    nextWave[i]=wave;
+    nextVelocity[i]=vel;
+    membraneForce[i]*=Math.exp(-dt*9.5);
+    const fluxTarget=clampValue(Math.abs(vel)*2.8+Math.abs(wave)*3.2+localAudio*0.48+drive*0.035,0,1);
+    membraneFlux[i]+=(fluxTarget-membraneFlux[i])*(fluxTarget>membraneFlux[i]?0.34:0.12);
+  }
+  membraneWave.set(nextWave);
+  membraneVelocity.set(nextVelocity);
+}
+
+function frame(now){
+  const time=now*0.001;
+  const dt=lastFrameTime?Math.min(0.033,Math.max(0.001,time-lastFrameTime)):1/60;
+  lastFrameTime=time;
+  if(speaking){
+    const tgt=0.5+0.5*Math.abs(Math.sin(now*0.011)*Math.cos(now*0.019));
+    speakEnergy+=(tgt-speakEnergy)*0.18;
+  }else speakEnergy+=(0-speakEnergy)*0.06;
+
+  updateAudioBands(time);
+  updateMembranePhysics(time,dt);
+  agit+=(Math.min(1,speakEnergy+micLevel*1.6)-agit)*0.18;
+
+  uniforms.uTime.value=time;
+  uniforms.uAgit.value=agit;
+  uniforms.uSpeakEnergy.value=speakEnergy;
+  uniforms.uMicLevel.value=micLevel;
+  uniforms.uAudio.value=audioBands;
+  uniforms.uWave.value=membraneWave;
+  uniforms.uFlux.value=membraneFlux;
+
+  renderer.render(scene,camera);
+  requestAnimationFrame(frame);
+}
+
+setInterval(()=>{ clockEl.textContent=new Date().toLocaleTimeString('en-GB'); },1000);
+resize(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
