@@ -1,1694 +1,287 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Jarvis</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maropost · DaVinci</title>
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #efe9dd;
-    --bg-soft: #e6dfd0;
-    --ink: #17140f;
-    --ink-soft: #4a443a;
-    --ink-muted: #837a6b;
-    --ink-dim: #b3aa99;
-    --line: rgba(23, 20, 15, 0.12);
-    --line-strong: rgba(23, 20, 15, 0.22);
-    --accent: #2a2622;
-    --accent-soft: rgba(23, 20, 15, 0.08);
-    --glass: rgba(255, 253, 247, 0.55);
-    --shadow-sm: 0 1px 2px rgba(60, 50, 35, 0.12), 0 0 0 1px var(--line);
-    --shadow-md: 0 4px 16px rgba(60, 50, 35, 0.16), 0 0 0 1px var(--line);
-    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-serif: 'Instrument Serif', Georgia, serif;
+  :root{
+    --bg:#ffffff;
+    --ink:#1c1f24;
+    --ink-soft:#2b2f36;
+    --dim:#8b929c;
+    --dimmer:#aab0b8;
+    --line:rgba(24,27,33,0.10);
+    --line-soft:rgba(24,27,33,0.07);
+    --card:#ffffff;
+    --accent:#1877f2;
+    --accent-press:#1564d6;
+    --accent-tint:#e9f2fe;
+    --r:14px;
+    --orb:clamp(340px, 64vh, 680px);
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    overflow:hidden;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    height: 100%;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: var(--font-sans);
-    overflow: hidden;
-    user-select: none;
-    -webkit-font-smoothing: antialiased;
+  /* ---- top bar ---- */
+  .topbar{
+    position:fixed; top:0; left:0; right:0; z-index:6;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 28px; pointer-events:none;
   }
+  .topbar > *{ pointer-events:auto; }
+  .wordmark{ font-weight:800; font-size:21px; letter-spacing:0.01em; color:var(--ink); user-select:none; }
+  .top-right{ display:flex; align-items:center; gap:10px; }
+  .ghostbtn{
+    display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+    background:#fff; border:1px solid var(--line); border-radius:999px;
+    padding:9px 15px; font-size:13px; font-weight:500; color:var(--ink-soft);
+    transition:border-color .2s, background .2s, transform .12s;
+  }
+  .ghostbtn:hover{ border-color:var(--ink-soft); }
+  .ghostbtn:active{ transform:scale(.97); }
+  .ghostbtn svg{ width:14px; height:14px; }
+  #newchat{ display:none; }
+  body.has-thread #newchat{ display:inline-flex; }
 
-  /* Subtle vignette so the figure sits in a cocoon of darkness */
-  .bg-vignette {
-    position: fixed; inset: 0; z-index: 1;
-    pointer-events: none;
-    background:
-      radial-gradient(ellipse 75% 75% at 50% 48%, transparent 45%, rgba(120, 108, 86, 0.22) 100%),
-      radial-gradient(ellipse 100% 80% at 50% 0%, rgba(150, 138, 112, 0.12), transparent 55%);
-  }
-  .bg-grain {
-    position: fixed; inset: 0; z-index: 2;
-    pointer-events: none;
-    opacity: 0.5;
-    mix-blend-mode: multiply;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.36 0 0 0 0 0.31 0 0 0 0 0.24 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
+  /* ---- orb backdrop ---- */
+  .orb-bg{ position:fixed; inset:0; display:grid; place-items:center; z-index:0; pointer-events:none; }
+  .stage{ position:relative; width:var(--orb); height:var(--orb); pointer-events:auto; }
+  #orb{ position:absolute; inset:0; width:100%; height:100%; display:block; }
 
-  /* ============ TOP STATUS ============ */
-  .topbar {
-    position: fixed; top: 18px; left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    display: flex; align-items: center; gap: 14px;
-    padding: 8px 16px;
-    background: var(--glass);
-    border: 1px solid var(--line);
-    border-radius: 100px;
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    box-shadow: var(--shadow-sm);
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--ink-soft);
-    letter-spacing: 0.02em;
-  }
-  .topbar .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 10px var(--accent);
-    animation: dot 2.4s ease-in-out infinite;
-  }
-  @keyframes dot { 50% { opacity: 0.4; } }
-  .topbar .sep { color: var(--ink-dim); }
-  .topbar .t-time {
-    font-variant-numeric: tabular-nums;
-    color: var(--ink);
-  }
 
-  /* ============ LEFT RAIL ============ */
-  .rail-left {
-    position: fixed; left: 18px; top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    display: flex; flex-direction: column;
-    gap: 4px;
-    padding: 8px;
-    background: var(--glass);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    box-shadow: var(--shadow-sm);
-  }
-  .rail-icon {
-    width: 38px; height: 38px;
-    display: grid; place-items: center;
-    border: none;
-    background: transparent;
-    color: var(--ink-muted);
-    cursor: pointer;
-    font-size: 16px;
-    border-radius: 12px;
-    position: relative;
-    transition: all 0.2s ease;
-  }
-  .rail-icon:hover {
-    color: var(--ink);
-    background: rgba(23, 20, 15, 0.05);
-  }
-  .rail-icon.active {
-    color: var(--accent);
-    background: var(--accent-soft);
-  }
-  .rail-icon .tip {
-    position: absolute; left: 46px; top: 50%;
-    transform: translateY(-50%);
-    background: rgba(247, 243, 235, 0.96);
-    color: var(--ink);
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    border-radius: 6px;
-    border: 1px solid var(--line);
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.15s;
-  }
-  .rail-icon:hover .tip { opacity: 1; }
 
-  /* ============ RIGHT ACTIVITY ============ */
-  .rail-right {
-    position: fixed; right: 18px; top: 50%;
-    transform: translateY(-50%);
-    z-index: 10;
-    width: 200px;
-    max-height: 60vh;
-    padding: 14px 16px;
-    background: var(--glass);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
+  /* ---- centered content over the orb ---- */
+  .center{
+    position:relative; z-index:1;
+    height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:clamp(18px,3vh,30px); padding:96px 22px 30px; pointer-events:none;
   }
-  .rail-right .lhead {
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--ink-muted);
-    margin-bottom: 10px;
-  }
-  .log-list {
-    display: flex; flex-direction: column;
-    gap: 8px;
-  }
-  .log-entry {
-    font-size: 12px;
-    color: var(--ink-soft);
-    line-height: 1.4;
-    opacity: 0;
-    animation: logIn 0.4s ease forwards;
-  }
-  @keyframes logIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .log-entry .t {
-    color: var(--ink-muted);
-    font-size: 10px;
-    font-weight: 500;
-    margin-right: 6px;
-    font-variant-numeric: tabular-nums;
-  }
-  .log-entry .m { color: var(--ink); }
+  .center > *{ pointer-events:auto; }
+  body.has-thread .center{ justify-content:flex-end; padding-bottom:34px; }
 
-  /* ============ CURSOR ============ */
-  html, body, * { cursor: none; }
-  #cursorCanvas {
-    position: fixed; inset: 0;
-    z-index: 60;
-    pointer-events: none;
-    width: 100%; height: 100%;
-    display: block;
-  }
+  .greeting{ text-align:center; max-width:540px; }
+  .greeting h1{ font-size:clamp(26px,4vw,40px); font-weight:600; letter-spacing:-0.02em; color:var(--ink); line-height:1.12; }
+  .greeting p{ margin-top:10px; font-size:15px; color:var(--dim); }
+  body.has-thread .greeting{ display:none; }
 
-  /* ============ OIL-ON-WATER BACKGROUND ============ */
-  #oilCanvas {
-    position: fixed; inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    width: 100%; height: 100%;
-    display: block;
+  /* ---- conversation thread (active) ---- */
+  .thread{
+    width:min(620px,92vw); flex:0 1 auto; min-height:0; max-height:52vh; overflow-y:auto;
+    display:flex; flex-direction:column; gap:24px; padding:10px 6px;
+    scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+    -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 26px, #000 calc(100% - 12px), transparent 100%);
+            mask-image:linear-gradient(to bottom, transparent 0, #000 26px, #000 calc(100% - 12px), transparent 100%);
   }
+  .thread:not(.on){ display:none; }
+  .thread::-webkit-scrollbar{ width:7px; }
+  .thread::-webkit-scrollbar-thumb{ background:var(--line); border-radius:999px; }
 
-  /* ============ INK BACKGROUND ============ */
-  #inkCanvas {
-    position: fixed; inset: 0;
-    z-index: 3;
-    pointer-events: none;
-    width: 100%; height: 100%;
-    display: block;
-  }
+  .turn{ display:flex; flex-direction:column; gap:8px; animation:rise .5s var(--ease) both; }
+  @keyframes rise{ from{ transform:translateY(10px); } to{ transform:none; } }
+  .turn .role{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.24em; text-transform:uppercase; color:var(--dimmer); }
+  .turn.user{ align-items:flex-end; }
+  .turn.user .role{ color:var(--accent); }
+  .turn .msg{ font-size:16px; line-height:1.55; color:var(--ink); max-width:90%; text-wrap:pretty; }
+  .turn.user .msg{ color:var(--ink-soft); font-weight:500; text-align:right; }
 
-  /* ============ ENTITY CANVAS ============ */
-  .entity-stage {
-    position: fixed; inset: 0;
-    z-index: 4;
-    display: grid; place-items: center;
-    pointer-events: none;
-  }
-  #entityCanvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
+  /* ---- cards ---- */
+  .card{ margin-top:4px; width:100%; max-width:430px; background:var(--card); border:1px solid var(--line);
+    border-radius:var(--r); box-shadow:0 1px 2px rgba(24,27,33,0.03), 0 16px 40px -24px rgba(24,27,33,0.34); overflow:hidden; }
+  .card-head{ display:flex; align-items:center; gap:10px; padding:14px 16px 12px; border-bottom:1px solid var(--line-soft); }
+  .card-head .ic{ width:30px; height:30px; border-radius:9px; background:var(--accent-tint); color:var(--accent); display:grid; place-items:center; flex:0 0 auto; }
+  .card-head .ic svg{ width:16px; height:16px; }
+  .card-head .ttl{ font-size:14px; font-weight:600; color:var(--ink); }
+  .card-head .sub{ font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--dim); margin-top:2px; }
+  .card-head .chip{ margin-left:auto; font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.16em; text-transform:uppercase; color:var(--ink-soft); background:#f3f4f6; border-radius:999px; padding:5px 10px; white-space:nowrap; }
+  .card-grid{ padding:6px 16px 4px; }
+  .row{ display:flex; align-items:baseline; gap:12px; padding:8px 0; border-bottom:1px dashed var(--line-soft); }
+  .row:last-child{ border-bottom:0; }
+  .row .k{ flex:0 0 116px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--dim); }
+  .row .v{ font-size:14px; color:var(--ink); font-weight:500; }
+  .row .v.mono{ font-family:'IBM Plex Mono',monospace; font-weight:400; }
+  .card-actions{ display:flex; gap:8px; padding:12px 16px 14px; }
+  .btn{ font-family:'Inter',sans-serif; font-size:13px; font-weight:600; cursor:pointer; border-radius:9px; padding:10px 16px; border:1px solid transparent; transition:background .18s, border-color .18s, transform .1s, color .18s; }
+  .btn:active{ transform:translateY(1px); }
+  .btn.primary{ background:var(--accent); color:#fff; }
+  .btn.primary:hover{ background:var(--accent-press); }
+  .btn.ghost{ background:#fff; color:var(--ink-soft); border-color:var(--line); }
+  .btn.ghost:hover{ border-color:var(--ink-soft); }
+  .btn.done{ background:var(--accent-tint); color:var(--accent); pointer-events:none; }
+  .btn .chk{ display:inline-flex; vertical-align:-2px; margin-right:6px; }
+  .btn .chk svg{ width:13px; height:13px; }
+  .metric{ padding:16px 16px 8px; display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; }
+  .metric .big{ font-size:34px; font-weight:700; letter-spacing:-0.02em; color:var(--ink); line-height:1; }
+  .metric .delta{ font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:500; display:inline-flex; align-items:center; gap:4px; padding-bottom:3px; }
+  .metric .delta.up{ color:#1f8a5b; }
+  .metric .delta.down{ color:#c0533b; }
+  .spark{ display:flex; align-items:flex-end; gap:4px; height:38px; margin-left:auto; padding-bottom:2px; }
+  .spark i{ width:7px; background:var(--accent); border-radius:2px 2px 0 0; opacity:.32; }
+  .spark i.last{ opacity:.92; }
+  .quick{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .quick button{ font-family:'IBM Plex Mono',monospace; font-size:12px; background:#fff; border:1px solid var(--line); color:var(--ink-soft); border-radius:999px; padding:9px 15px; cursor:pointer; transition:border-color .18s, background .18s, color .18s; }
+  .quick button:hover{ border-color:var(--accent); color:var(--accent); background:var(--accent-tint); }
 
-  /* ============ MESH OVERLAY ============ */
-  #meshCanvas {
-    position: fixed; inset: 0;
-    z-index: 5;
-    pointer-events: none;
-    width: 100%; height: 100%;
-  }
+  /* ---- composer (voice-first) ---- */
+  .composer{ width:min(560px,92vw); display:flex; flex-direction:column; align-items:center; gap:16px; }
 
-  /* ============ COMMAND BAR ============ */
-  .cmdbar {
-    position: fixed; bottom: 24px; left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    display: flex; align-items: center; gap: 6px;
-    width: min(520px, calc(100% - 280px));
-    padding: 6px;
-    background: var(--glass);
-    border: 1px solid var(--line);
-    border-radius: 100px;
-    backdrop-filter: blur(20px) saturate(140%);
-    -webkit-backdrop-filter: blur(20px) saturate(140%);
-    box-shadow: var(--shadow-md);
-    transition: box-shadow 0.3s;
+  .voice-cta{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+  body.has-thread .voice-cta{ display:none; }
+  .bigmic{
+    position:relative; width:clamp(78px,8.5vw,96px); height:clamp(78px,8.5vw,96px);
+    border-radius:50%; border:0; cursor:pointer; background:var(--accent); color:#fff;
+    display:grid; place-items:center; box-shadow:0 14px 34px -8px rgba(24,118,242,.55);
+    transition:transform .16s var(--ease), background .2s;
   }
-  .cmdbar:focus-within {
-    box-shadow: var(--shadow-md), 0 0 0 3px var(--accent-soft);
-    border-color: var(--line-strong);
-  }
-  .cmd-input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--ink);
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 400;
-    padding: 10px 14px;
-    letter-spacing: 0.005em;
-  }
-  .cmd-input::placeholder {
-    color: var(--ink-muted);
-  }
-  .btn {
-    background: transparent;
-    border: none;
-    color: var(--ink-soft);
-    width: 38px; height: 38px;
-    display: grid; place-items: center;
-    cursor: pointer;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    font-size: 13px;
-  }
-  .btn:hover {
-    background: rgba(23, 20, 15, 0.08);
-    color: var(--ink);
-  }
-  .btn.mic {
-    background: var(--accent);
-    color: #f4efe3;
-    font-weight: 700;
-  }
-  .btn.mic:hover {
-    background: #15120e;
-    transform: scale(1.05);
-  }
-  body.listening .btn.mic {
-    background: #d2543f;
-    color: #f4efe3;
-    animation: micPulse 1.2s ease-in-out infinite;
-  }
-  @keyframes micPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(210, 84, 63, 0.4); }
-    50% { box-shadow: 0 0 0 10px rgba(210, 84, 63, 0); }
-  }
+  .bigmic svg{ width:clamp(30px,3.2vw,36px); height:clamp(30px,3.2vw,36px); }
+  .bigmic:hover{ transform:translateY(-3px) scale(1.03); }
+  .bigmic:active{ transform:scale(.96); }
+  .bigmic::after{ content:""; position:absolute; inset:0; border-radius:50%; border:2px solid var(--accent); opacity:.45; animation:ring 2.6s var(--ease) infinite; }
+  @keyframes ring{ 0%{ transform:scale(1); opacity:.5; } 80%,100%{ transform:scale(1.6); opacity:0; } }
+  .bigmic.live{ background:var(--accent-press); box-shadow:0 14px 40px -6px rgba(24,118,242,.7); }
+  .bigmic.live::after{ animation-duration:1.2s; }
+  .voice-label{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); min-height:14px; transition:color .3s; }
+  body[data-state="listening"] .voice-label{ color:var(--accent); }
 
-  /* ============ WHISPER ============ */
-  .whisper {
-    position: fixed;
-    bottom: 92px;
-    left: 50%;
-    transform: translateX(-50%) translateY(8px);
-    z-index: 9;
-    max-width: 520px;
-    text-align: center;
-    font-family: var(--font-serif);
-    font-size: 22px;
-    font-weight: 400;
-    line-height: 1.35;
-    color: var(--ink);
-    letter-spacing: -0.005em;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    padding: 0 24px;
-    text-shadow: 0 1px 18px rgba(239, 233, 221, 0.9);
-  }
-  .whisper.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+  .ortype{ display:flex; align-items:center; gap:12px; width:100%; color:var(--dimmer); font-size:11px; font-family:'IBM Plex Mono',monospace; letter-spacing:0.16em; text-transform:uppercase; }
+  .ortype::before, .ortype::after{ content:""; flex:1; height:1px; background:var(--line); }
+  body.has-thread .ortype{ display:none; }
 
-  /* ============ BOOT ============ */
-  .boot {
-    position: fixed; inset: 0; z-index: 100;
-    background: var(--bg);
-    display: grid; place-items: center;
-    transition: opacity 0.8s, visibility 0.8s;
+  .inputrow{
+    width:100%; display:flex; align-items:center; gap:8px;
+    background:var(--card); border:1px solid var(--line); border-radius:999px;
+    padding:7px 7px 7px 20px; box-shadow:0 1px 2px rgba(24,27,33,.03), 0 18px 44px -28px rgba(24,27,33,.45);
+    transition:border-color .2s, box-shadow .2s;
   }
-  .boot.gone {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-  .boot-inner { text-align: center; }
-  .boot-logo {
-    font-family: var(--font-serif);
-    font-size: 52px;
-    font-weight: 400;
-    letter-spacing: 0.02em;
-    color: var(--ink);
-    margin-bottom: 22px;
-    text-shadow: 0 1px 2px rgba(60, 50, 35, 0.15);
-    animation: bootGlow 2.2s ease-in-out infinite;
-  }
-  @keyframes bootGlow {
-    50% { opacity: 0.62; }
-  }
-  .boot-bar {
-    width: 160px; height: 1px;
-    background: var(--line);
-    overflow: hidden;
-    margin: 0 auto;
-  }
-  .boot-fill {
-    height: 100%; width: 0%;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
-    transition: width 0.3s ease;
-  }
+  .inputrow:focus-within{ border-color:var(--accent); box-shadow:0 1px 2px rgba(24,27,33,.03), 0 0 0 4px var(--accent-tint); }
+  .inputrow input{ flex:1; min-width:0; background:transparent; border:0; outline:0; font-family:'Inter',sans-serif; font-size:16px; color:var(--ink); padding:9px 0; }
+  .inputrow input::placeholder{ color:var(--dim); }
+  .iconbtn{ flex:0 0 auto; width:42px; height:42px; border-radius:50%; border:0; cursor:pointer; display:grid; place-items:center; transition:background .18s, transform .1s, color .18s; }
+  .iconbtn svg{ width:19px; height:19px; }
+  .iconbtn:active{ transform:scale(.94); }
+  .mic{ background:#f3f4f6; color:var(--ink-soft); }
+  .mic:hover{ background:#e9eaed; }
+  .mic.live{ background:var(--accent); color:#fff; animation:micpulse 1.5s ease infinite; }
+  @keyframes micpulse{ 0%{ box-shadow:0 0 0 0 rgba(24,118,242,.45); } 70%{ box-shadow:0 0 0 12px rgba(24,118,242,0); } 100%{ box-shadow:0 0 0 0 rgba(24,118,242,0); } }
+  .inputrow .mic{ display:none; }
+  body.has-thread .inputrow .mic{ display:grid; }
+  .send{ background:var(--accent); color:#fff; }
+  .send:hover{ background:var(--accent-press); }
+  .send:disabled{ background:#e7e8eb; color:var(--dimmer); cursor:default; transform:none; }
 
-  @media (max-width: 720px) {
-    .rail-right { display: none; }
-    .cmdbar { width: calc(100% - 110px); }
-    .whisper { font-size: 18px; }
+  .statepill{ display:inline-flex; align-items:center; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.26em; text-transform:uppercase; color:var(--dimmer); }
+  .statepill .pip{ width:6px; height:6px; border-radius:50%; background:var(--dimmer); transition:background .4s, box-shadow .4s; }
+  body[data-state="listening"] .statepill .pip{ background:var(--accent); box-shadow:0 0 0 3px var(--accent-tint); animation:pulse 1.4s var(--ease) infinite; }
+  body[data-state="thinking"] .statepill .pip{ background:var(--ink-soft); animation:pulse 1s ease infinite; }
+  body[data-state="speaking"] .statepill .pip{ background:var(--ink-soft); animation:pulse .7s ease infinite; }
+  @keyframes pulse{ 0%,100%{ transform:scale(1); opacity:1; } 50%{ transform:scale(1.55); opacity:.55; } }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  body.has-thread .chips{ display:none; }
+  .chip-s{ font-family:'IBM Plex Mono',monospace; font-size:12px; background:#fff; border:1px solid var(--line); color:var(--ink-soft); border-radius:999px; padding:9px 15px; cursor:pointer; transition:border-color .18s, color .18s, background .18s, transform .1s; }
+  .chip-s:hover{ border-color:var(--accent); color:var(--accent); background:var(--accent-tint); }
+  .chip-s:active{ transform:scale(.97); }
+
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translate(-50%,18px); background:var(--ink); color:#fff; font-size:13px; padding:11px 18px; border-radius:10px; opacity:0; pointer-events:none; transition:opacity .3s, transform .3s; z-index:40; font-family:'IBM Plex Mono',monospace; letter-spacing:0.02em; box-shadow:0 16px 40px -16px rgba(24,27,33,.5); }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+
+  @media (max-width:560px){
+    .topbar{ padding:16px 18px; }
+    .wordmark{ font-size:18px; }
+    .ghostbtn{ padding:8px 12px; font-size:12px; }
+    .turn .msg{ font-size:15px; }
+    .row .k{ flex-basis:96px; }
+    .thread{ max-height:46vh; }
   }
+  @media (max-height:680px){
+    :root{ --orb:clamp(300px, 88vh, 560px); }
+    .center{ gap:14px; }
+  }
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration:.001ms !important; } }
 </style>
 </head>
-<body>
+<body data-state="idle">
 
-<div class="boot" id="boot">
-  <div class="boot-inner">
-    <div class="boot-logo">jarvis</div>
-    <div class="boot-bar"><div class="boot-fill" id="bootFill"></div></div>
+  <div class="topbar">
+    <div class="wordmark">MAROPOST</div>
+    <div class="top-right">
+      <button class="ghostbtn" id="newchat" title="New conversation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        New
+      </button>
+      <button class="ghostbtn" id="classicUI" title="Open the classic Maropost dashboard">Open classic UI</button>
+    </div>
   </div>
-</div>
 
-<div class="bg-vignette"></div>
-<div class="bg-grain"></div>
-
-<canvas id="oilCanvas"></canvas>
-<canvas id="inkCanvas"></canvas>
-
-<div class="topbar">
-  <span class="dot"></span>
-  <span id="topStatus">Listening</span>
-  <span class="sep">·</span>
-  <span class="t-time" id="topTime">00:00</span>
-</div>
-
-<aside class="rail-left">
-  <button class="rail-icon active" data-mod="Commerce">
-    <span>◇</span><span class="tip">Commerce</span>
-  </button>
-  <button class="rail-icon" data-mod="Channels">
-    <span>◈</span><span class="tip">Channels</span>
-  </button>
-  <button class="rail-icon" data-mod="Campaigns">
-    <span>○</span><span class="tip">Campaigns</span>
-  </button>
-  <button class="rail-icon" data-mod="Catalog">
-    <span>◯</span><span class="tip">Catalog</span>
-  </button>
-  <button class="rail-icon" data-mod="Service">
-    <span>◌</span><span class="tip">Service</span>
-  </button>
-</aside>
-
-<aside class="rail-right">
-  <div class="lhead">Activity</div>
-  <div class="log-list" id="logList"></div>
-</aside>
-
-<div class="entity-stage">
-  <canvas id="entityCanvas"></canvas>
-</div>
-
-<canvas id="meshCanvas"></canvas>
-
-<canvas id="cursorCanvas"></canvas>
-
-<div class="whisper" id="whisper"></div>
-
-<div class="cmdbar">
-  <input id="cmdInput" class="cmd-input" type="text" placeholder="Speak or type a command…" autocomplete="off" />
-  <button id="voiceBtn" class="btn mic" title="Voice">◉</button>
-  <button id="runBtn" class="btn" title="Send">→</button>
-</div>
-
-<script>
-/* ============================================================
-   BOOT
-   ============================================================ */
-function runBoot() {
-  const boot = document.getElementById('boot');
-  const fill = document.getElementById('bootFill');
-  let p = 0;
-  const step = () => {
-    p += 25;
-    fill.style.width = p + '%';
-    if (p >= 100) {
-      setTimeout(() => boot.classList.add('gone'), 500);
-      return;
-    }
-    setTimeout(step, 280);
-  };
-  setTimeout(step, 400);
-}
-runBoot();
-
-/* ============================================================
-   STATE
-   ============================================================ */
-const $ = id => document.getElementById(id);
-const cmdInput = $('cmdInput');
-const runBtn = $('runBtn');
-const voiceBtn = $('voiceBtn');
-const whisper = $('whisper');
-const logList = $('logList');
-const topStatus = $('topStatus');
-
-let activeModule = 'Commerce';
-let recognition, isListening = false;
-let audioCtx, analyser, micSource, micStream, audioData;
-let voiceLevel = 0.03;
-let assistantSpeaking = false;
-let assistantSpeechStart = 0;
-let assistantSpeechDuration = 1800;
-let assistantSpeechPattern = [];
-let assistantSpeechFadeUntil = 0;
-let excitement = 0;
-let mood = -1;
-let preferredVoice = null;
-
-/* ============================================================
-   LOG + WHISPER
-   ============================================================ */
-function pad(n, w=2) { return String(n).padStart(w, '0'); }
-function nowStamp() {
-  const d = new Date();
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-function addLog(msg) {
-  const e = document.createElement('div');
-  e.className = 'log-entry';
-  e.innerHTML = `<span class="t">${nowStamp()}</span><span class="m">${msg}</span>`;
-  logList.prepend(e);
-  while (logList.children.length > 8) logList.removeChild(logList.lastChild);
-}
-function whisperShow(text) {
-  whisper.textContent = text;
-  whisper.classList.add('show');
-  clearTimeout(whisperShow.t);
-  whisperShow.t = setTimeout(() => whisper.classList.remove('show'), 5000);
-}
-
-/* ============================================================
-   COMMAND PROCESSING
-   ============================================================ */
-function normalize(t) { return t.toLowerCase().trim(); }
-function titleCase(t) {
-  return t.split(' ').filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
-}
-function inferModule(cmd) {
-  const v = normalize(cmd);
-  if (v.match(/sales|channel|store/)) return 'Channels';
-  if (v.match(/campaign|marketing|journey|email/)) return 'Campaigns';
-  if (v.match(/product|catalog|inventory/)) return 'Catalog';
-  if (v.match(/support|service|ticket|inbox/)) return 'Service';
-  if (v.match(/dashboard|performance|overview|home|commerce/)) return 'Commerce';
-  const cleaned = v.replace(/create|open|build|prepare|show|make|generate|module|dashboard/gi, '').trim();
-  return cleaned ? titleCase(cleaned) : 'Workspace';
-}
-function setActiveModule(name) {
-  activeModule = name;
-  document.querySelectorAll('.rail-icon').forEach(el => {
-    el.classList.toggle('active', el.dataset.mod === name);
-  });
-}
-function respond(msg) {
-  whisperShow(msg);
-  speak(msg);
-  addLog(msg.length > 32 ? msg.slice(0, 32) + '…' : msg);
-}
-function runCommand(raw) {
-  const cmd = (raw || '').trim();
-  if (!cmd) {
-    respond('What can I help you with?');
-    return;
-  }
-  excitement = Math.max(excitement, 0.9);
-  topStatus.textContent = 'Thinking';
-  addLog('"' + cmd + '"');
-  const name = inferModule(cmd);
-  const known = ['Commerce', 'Channels', 'Campaigns', 'Catalog', 'Service'];
-  const wantsCreate = /create|build|make|generate|prepare/i.test(cmd);
-  setActiveModule(name);
-  if (!known.includes(name) && wantsCreate) {
-    respond(`I've created ${name} for you.`);
-  } else if (!known.includes(name)) {
-    respond(`Here's a starter workspace for ${name}.`);
-  } else if (wantsCreate) {
-    respond(`A new draft is ready in ${name}.`);
-  } else {
-    respond(`Opening ${name}.`);
-  }
-  setTimeout(() => { topStatus.textContent = 'Listening'; }, 1400);
-  cmdInput.value = '';
-}
-
-/* ============================================================
-   VOICE — speech recognition
-   ============================================================ */
-function setupVoice() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    voiceBtn.disabled = true;
-    voiceBtn.style.opacity = 0.3;
-    addLog('Voice unavailable');
-    return;
-  }
-  recognition = new SR();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-  recognition.onstart = () => {
-    isListening = true;
-    excitement = Math.max(excitement, 0.7);
-    mood = 0;
-    document.body.classList.add('listening');
-    topStatus.textContent = 'Listening';
-    whisperShow('I\'m listening…');
-    startAudio();
-  };
-  recognition.onresult = (e) => {
-    let t = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
-    cmdInput.value = t;
-    if (e.results[e.results.length - 1].isFinal) runCommand(t);
-  };
-  recognition.onerror = () => respond('I didn\'t catch that. Try again?');
-  recognition.onend = () => {
-    isListening = false;
-    document.body.classList.remove('listening');
-    topStatus.textContent = 'Ready';
-    if (mood === 0) mood = -1;
-    stopAudio();
-  };
-}
-async function startAudio() {
-  try {
-    if (!navigator.mediaDevices?.getUserMedia) return;
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') await audioCtx.resume();
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 512;
-    analyser.smoothingTimeConstant = 0.82;
-    audioData = new Uint8Array(analyser.frequencyBinCount);
-    micSource = audioCtx.createMediaStreamSource(micStream);
-    micSource.connect(analyser);
-  } catch (e) { addLog('Mic access denied'); }
-}
-function stopAudio() {
-  if (micStream) micStream.getTracks().forEach(t => t.stop());
-  micStream = micSource = analyser = null;
-}
-function startAssistantSpeak(text) {
-  const words = text.trim().split(' ').filter(Boolean);
-  assistantSpeechPattern = words.length
-    ? words.map(w => Math.min(1, 0.24 + Math.min(0.52, w.length * 0.045) + (/[.!?]$/.test(w) ? 0.22 : 0) + Math.random() * 0.22))
-    : [0.4, 0.5, 0.4];
-  assistantSpeechStart = performance.now();
-  assistantSpeechDuration = Math.max(1400, assistantSpeechPattern.length * 320);
-  assistantSpeechFadeUntil = assistantSpeechStart + assistantSpeechDuration + 700;
-  excitement = Math.max(excitement, 1.3);
-  assistantSpeaking = true;
-  mood = 1;
-  document.body.classList.add('speaking');
-}
-function stopAssistantSpeak() {
-  assistantSpeaking = false;
-  assistantSpeechFadeUntil = performance.now() + 700;
-  setTimeout(() => {
-    if (!assistantSpeaking) {
-      document.body.classList.remove('speaking');
-      mood = -1;
-    }
-  }, 760);
-}
-function speak(text) {
-  const clean = text.replace(/<[^>]*>/g, '');
-  startAssistantSpeak(clean);
-  if (!window.speechSynthesis) {
-    setTimeout(stopAssistantSpeak, assistantSpeechDuration);
-    return;
-  }
-  const u = new SpeechSynthesisUtterance(clean);
-  if (preferredVoice) u.voice = preferredVoice;
-  u.rate = 1.0;
-  u.pitch = 1.1;
-  u.volume = 0.9;
-  u.onend = stopAssistantSpeak;
-  u.onerror = stopAssistantSpeak;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(u);
-}
-
-/* Async female-voice picker — works across Chrome/Safari/Firefox */
-function pickFemaleVoice() {
-  if (!window.speechSynthesis) return;
-  const voices = speechSynthesis.getVoices();
-  if (!voices.length) return;
-  const preferred = [
-    'Google UK English Female',
-    'Microsoft Aria Online (Natural) - English (United States)',
-    'Microsoft Jenny Online (Natural) - English (United States)',
-    'Microsoft Zira',
-    'Samantha', 'Karen', 'Victoria', 'Allison', 'Ava',
-    'Susan', 'Tessa', 'Moira', 'Fiona', 'Serena', 'Kate',
-  ];
-  for (const name of preferred) {
-    const v = voices.find(v => v.name === name) || voices.find(v => v.name.includes(name));
-    if (v) { preferredVoice = v; return; }
-  }
-  const fem = voices.find(v => /female|woman|girl/i.test(v.name));
-  if (fem) { preferredVoice = fem; return; }
-  const en = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
-  if (en) preferredVoice = en;
-}
-pickFemaleVoice();
-if (window.speechSynthesis) {
-  speechSynthesis.addEventListener('voiceschanged', pickFemaleVoice);
-}
-
-function getReplyLevel() {
-  const now = performance.now();
-  if (!assistantSpeaking && now > assistantSpeechFadeUntil) return 0;
-  const elapsed = Math.max(0, now - assistantSpeechStart);
-  const prog = Math.min(1, elapsed / assistantSpeechDuration);
-  const idx = Math.min(assistantSpeechPattern.length - 1, Math.floor(prog * assistantSpeechPattern.length));
-  const wE = assistantSpeechPattern[idx] || 0.3;
-  const syl = Math.abs(Math.sin(now * 0.032)) * 0.38;
-  const mp = Math.abs(Math.sin(now * 0.073)) * 0.16;
-  const sc = Math.sin(prog * Math.PI);
-  let lv = Math.min(1, wE * (0.42 + syl + mp) + sc * 0.16);
-  if (!assistantSpeaking && now <= assistantSpeechFadeUntil) {
-    const fade = Math.max(0, (assistantSpeechFadeUntil - now) / 700);
-    lv *= fade;
-  }
-  return lv;
-}
-function getVoiceLevel() {
-  let mic = 0.02;
-  if (analyser && audioData) {
-    analyser.getByteFrequencyData(audioData);
-    let s = 0;
-    for (let i = 0; i < audioData.length; i++) s += audioData[i];
-    const avg = s / audioData.length / 255;
-    mic = Math.min(1, Math.pow(avg * 3.6, 1.04));
-  }
-  const reply = getReplyLevel();
-  const target = Math.max(mic, reply);
-  const smoothing = target > voiceLevel ? 0.4 : 0.12;
-  voiceLevel += (target - voiceLevel) * smoothing;
-  return voiceLevel;
-}
-
-/* ============================================================
-   3D Simplex noise (compact, self-contained) — returns an object
-   with noise3D(x,y,z) in [-1,1]. Adapted from the standard
-   Stefan Gustavson / Jonas Wagner simplex algorithm.
-   ============================================================ */
-function makeSimplex3D() {
-  const grad3 = new Float32Array([
-    1,1,0,-1,1,0,1,-1,0,-1,-1,0,
-    1,0,1,-1,0,1,1,0,-1,-1,0,-1,
-    0,1,1,0,-1,1,0,1,-1,0,-1,-1
-  ]);
-  const p = new Uint8Array(256);
-  for (let i = 0; i < 256; i++) p[i] = i;
-  // Shuffle deterministically
-  let seed = 1337;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (let i = 255; i > 0; i--) {
-    const n = Math.floor(rnd() * (i + 1));
-    const t = p[i]; p[i] = p[n]; p[n] = t;
-  }
-  const perm = new Uint8Array(512);
-  const permMod12 = new Uint8Array(512);
-  for (let i = 0; i < 512; i++) {
-    perm[i] = p[i & 255];
-    permMod12[i] = perm[i] % 12;
-  }
-  const F3 = 1 / 3, G3 = 1 / 6;
-
-  function noise3D(xin, yin, zin) {
-    let n0, n1, n2, n3;
-    const s = (xin + yin + zin) * F3;
-    const i = Math.floor(xin + s);
-    const j = Math.floor(yin + s);
-    const k = Math.floor(zin + s);
-    const t = (i + j + k) * G3;
-    const X0 = i - t, Y0 = j - t, Z0 = k - t;
-    const x0 = xin - X0, y0 = yin - Y0, z0 = zin - Z0;
-
-    let i1, j1, k1, i2, j2, k2;
-    if (x0 >= y0) {
-      if (y0 >= z0)      { i1=1;j1=0;k1=0; i2=1;j2=1;k2=0; }
-      else if (x0 >= z0) { i1=1;j1=0;k1=0; i2=1;j2=0;k2=1; }
-      else               { i1=0;j1=0;k1=1; i2=1;j2=0;k2=1; }
-    } else {
-      if (y0 < z0)       { i1=0;j1=0;k1=1; i2=0;j2=1;k2=1; }
-      else if (x0 < z0)  { i1=0;j1=1;k1=0; i2=0;j2=1;k2=1; }
-      else               { i1=0;j1=1;k1=0; i2=1;j2=1;k2=0; }
-    }
-
-    const x1 = x0 - i1 + G3, y1 = y0 - j1 + G3, z1 = z0 - k1 + G3;
-    const x2 = x0 - i2 + 2*G3, y2 = y0 - j2 + 2*G3, z2 = z0 - k2 + 2*G3;
-    const x3 = x0 - 1 + 3*G3, y3 = y0 - 1 + 3*G3, z3 = z0 - 1 + 3*G3;
-
-    const ii = i & 255, jj = j & 255, kk = k & 255;
-
-    let t0 = 0.6 - x0*x0 - y0*y0 - z0*z0;
-    if (t0 < 0) n0 = 0;
-    else { const gi0 = permMod12[ii+perm[jj+perm[kk]]]*3; t0*=t0; n0 = t0*t0*(grad3[gi0]*x0+grad3[gi0+1]*y0+grad3[gi0+2]*z0); }
-
-    let t1 = 0.6 - x1*x1 - y1*y1 - z1*z1;
-    if (t1 < 0) n1 = 0;
-    else { const gi1 = permMod12[ii+i1+perm[jj+j1+perm[kk+k1]]]*3; t1*=t1; n1 = t1*t1*(grad3[gi1]*x1+grad3[gi1+1]*y1+grad3[gi1+2]*z1); }
-
-    let t2 = 0.6 - x2*x2 - y2*y2 - z2*z2;
-    if (t2 < 0) n2 = 0;
-    else { const gi2 = permMod12[ii+i2+perm[jj+j2+perm[kk+k2]]]*3; t2*=t2; n2 = t2*t2*(grad3[gi2]*x2+grad3[gi2+1]*y2+grad3[gi2+2]*z2); }
-
-    let t3 = 0.6 - x3*x3 - y3*y3 - z3*z3;
-    if (t3 < 0) n3 = 0;
-    else { const gi3 = permMod12[ii+1+perm[jj+1+perm[kk+1]]]*3; t3*=t3; n3 = t3*t3*(grad3[gi3]*x3+grad3[gi3+1]*y3+grad3[gi3+2]*z3); }
-
-    return 32 * (n0 + n1 + n2 + n3);
-  }
-
-  return { noise3D };
-}
-
-/* ============================================================
-   CURSOR — a small soft ink dot that tracks the pointer.
-   The fluid dye now provides the trailing "stroke", so the
-   cursor itself is just a precise, always-visible head that
-   eases toward the pointer. The native arrow stays hidden.
-   ============================================================ */
-function setupCursor() {
-  const canvas = $('cursorCanvas');
-  const ctx = canvas.getContext('2d');
-  let W = 0, H = 0;
-  const dpr = Math.min(devicePixelRatio, 2);
-
-  let tx = window.innerWidth / 2, ty = window.innerHeight / 2;
-  // Primary head — spring-driven, heavy damping
-  let hx = tx, hy = ty, vx = 0, vy = 0;
-  // Secondary tail blob — follows head with even heavier inertia
-  let tx2 = tx, ty2 = ty, vx2 = 0, vy2 = 0;
-  let visible = false;
-
-  function resize() {
-    W = window.innerWidth; H = window.innerHeight;
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  window.addEventListener('mousemove', e => { tx = e.clientX; ty = e.clientY; visible = true; });
-  window.addEventListener('mouseout', e => { if (!e.relatedTarget) visible = false; });
-  window.addEventListener('mousedown', () => { visible = true; });
-
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-
-    // Viscous spring: weak attraction + aggressive velocity damping so the
-    // head lumbers toward the pointer instead of snapping.
-    vx += (tx - hx) * 0.055;
-    vy += (ty - hy) * 0.055;
-    vx *= 0.70;
-    vy *= 0.70;
-    hx += vx;
-    hy += vy;
-
-    // Tail blob chases the head with even more lag — oil being dragged behind.
-    vx2 += (hx - tx2) * 0.022;
-    vy2 += (hy - ty2) * 0.022;
-    vx2 *= 0.75;
-    vy2 *= 0.75;
-    tx2 += vx2;
-    ty2 += vy2;
-
-    if (visible) {
-      const dx = hx - tx2, dy = hy - ty2;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      // Faint filament connecting the two blobs while they're pulling apart.
-      if (dist > 3) {
-        const filmAlpha = Math.min(0.16, dist * 0.004);
-        const lg = ctx.createLinearGradient(hx, hy, tx2, ty2);
-        lg.addColorStop(0,   `rgba(23, 20, 15, ${filmAlpha})`);
-        lg.addColorStop(0.5, `rgba(23, 20, 15, ${filmAlpha * 0.5})`);
-        lg.addColorStop(1,   `rgba(23, 20, 15, ${filmAlpha})`);
-        ctx.beginPath();
-        ctx.moveTo(hx, hy);
-        ctx.lineTo(tx2, ty2);
-        ctx.strokeStyle = lg;
-        ctx.lineWidth = Math.max(0.8, 2.5 - dist * 0.05);
-        ctx.stroke();
-      }
-
-      // Tail — larger, diffuse drop
-      const r2 = 7;
-      const g2 = ctx.createRadialGradient(tx2, ty2, 0, tx2, ty2, r2);
-      g2.addColorStop(0,   'rgba(23, 20, 15, 0.42)');
-      g2.addColorStop(0.5, 'rgba(23, 20, 15, 0.16)');
-      g2.addColorStop(1,   'rgba(23, 20, 15, 0)');
-      ctx.fillStyle = g2;
-      ctx.beginPath();
-      ctx.arc(tx2, ty2, r2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Head — denser ink dot
-      const r = 5;
-      const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, r);
-      g.addColorStop(0,   'rgba(23, 20, 15, 0.85)');
-      g.addColorStop(0.4, 'rgba(23, 20, 15, 0.50)');
-      g.addColorStop(1,   'rgba(23, 20, 15, 0)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(hx, hy, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    requestAnimationFrame(draw);
-  }
-
-  window.addEventListener('resize', resize);
-  resize();
-  draw();
-}
-
-/* ============================================================
-   OIL ON WATER — ambient background marbling.
-   A single full-screen fragment-shader quad rendering
-   domain-warped FBM value noise (IQ-style fbm(p+fbm(p+fbm(p)))),
-   drifting slowly on its own and warping locally around the
-   cursor so the marbling ripples as the pointer passes. Tonal
-   only: mapped into the existing cream/ink sepia palette so it
-   reads as living paper, never color. Sits behind everything
-   (z-index 0) beneath the vignette, grain and ink strokes.
-   ============================================================ */
-const OIL_FRAG = `
-  precision highp float;
-  varying vec2 vUv;
-  uniform float uTime;
-  uniform vec2 uRes;
-  uniform vec2 uMouse;     // normalized 0..1, y up
-  uniform float uMouseAmp; // recent-movement strength, decays to 0
-
-  float hash(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
-  }
-  float noise(vec2 p) {
-    vec2 i = floor(p), f = fract(p);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    float a = hash(i);
-    float b = hash(i + vec2(1.0, 0.0));
-    float c = hash(i + vec2(0.0, 1.0));
-    float d = hash(i + vec2(1.0, 1.0));
-    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
-  }
-  float fbm(vec2 p) {
-    float v = 0.0, a = 0.5;
-    for (int i = 0; i < 5; i++) {
-      v += a * noise(p);
-      p *= 2.0;
-      a *= 0.5;
-    }
-    return v;
-  }
-
-  void main() {
-    float aspect = uRes.x / uRes.y;
-    vec2 p = vUv;
-    p.x *= aspect;
-    p *= 2.2;                       // scale of the marbling
-    float t = uTime * 0.04;         // slow ambient drift
-
-    // Cursor warp: push the domain around the pointer, fading with
-    // distance and with the recent-movement amplitude.
-    vec2 m = uMouse; m.x *= aspect;
-    vec2 toM = p - m;
-    float d = length(toM);
-    vec2 warp = (toM / (d + 0.001)) * uMouseAmp * exp(-d * 1.8) * 0.5;
-
-    // Domain warping (Inigo Quilez).
-    vec2 q = vec2(fbm(p + t),
-                  fbm(p + vec2(5.2, 1.3) - t));
-    vec2 r = vec2(fbm(p + 4.0 * q + vec2(1.7, 9.2) + t * 0.7 + warp),
-                  fbm(p + 4.0 * q + vec2(8.3, 2.8) - t * 0.6 + warp));
-    float f = fbm(p + 4.0 * r);
-    f = smoothstep(0.0, 1.0, f);
-
-    // Tonal sepia only — cream <-> soft, faint ink in deepest troughs.
-    vec3 cream = vec3(0.937, 0.914, 0.867); // #efe9dd
-    vec3 soft  = vec3(0.902, 0.875, 0.816); // #e6dfd0
-    vec3 deep  = vec3(0.090, 0.078, 0.059); // #17140f
-    vec3 col = mix(soft, cream, f);
-    col = mix(col, deep, smoothstep(0.75, 1.0, 1.0 - f) * 0.12);
-
-    gl_FragColor = vec4(col, 1.0);
-  }
-`;
-function setupOilFluid() {
-  const canvas = $('oilCanvas');
-  if (typeof THREE === 'undefined') return;
-
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: false, antialias: false });
-  renderer.setPixelRatio(1);
-
-  const scene = new THREE.Scene();
-  const camera = new THREE.Camera();
-  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
-  quad.frustumCulled = false;
-  scene.add(quad);
-
-  const mat = new THREE.ShaderMaterial({
-    uniforms: {
-      uTime: { value: 0 },
-      uRes: { value: new THREE.Vector2() },
-      uMouse: { value: new THREE.Vector2(0.5, 0.5) },
-      uMouseAmp: { value: 0 },
-    },
-    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
-    fragmentShader: OIL_FRAG,
-    depthTest: false, depthWrite: false,
-  });
-  quad.material = mat;
-
-  // Smoothed cursor + a movement amplitude that spikes on motion and
-  // decays, giving ripples that follow then relax.
-  let mx = 0.5, my = 0.5, tmx = 0.5, tmy = 0.5, amp = 0;
-  window.addEventListener('mousemove', e => {
-    const nx = e.clientX / window.innerWidth;
-    const ny = 1.0 - e.clientY / window.innerHeight;
-    amp = Math.min(1, amp + Math.hypot(nx - tmx, ny - tmy) * 6);
-    tmx = nx; tmy = ny;
-  });
-
-  function resize() {
-    renderer.setSize(window.innerWidth, window.innerHeight, false);
-    mat.uniforms.uRes.value.set(window.innerWidth, window.innerHeight);
-  }
-
-  const t0 = performance.now();
-  function frame() {
-    mx += (tmx - mx) * 0.08;
-    my += (tmy - my) * 0.08;
-    amp *= 0.94;
-    mat.uniforms.uTime.value = (performance.now() - t0) / 1000;
-    mat.uniforms.uMouse.value.set(mx, my);
-    mat.uniforms.uMouseAmp.value = amp;
-    renderer.render(scene, camera);
-    requestAnimationFrame(frame);
-  }
-
-  window.addEventListener('resize', resize);
-  resize();
-  frame();
-}
-
-/* ============================================================
-   FLUID INK — a real GPU fluid simulation (Stable Fluids /
-   Navier–Stokes) on ping-pong half-float render targets.
-   Moving the cursor injects a velocity force + ink dye that
-   advects, swirls (vorticity confinement) and slowly dissipates
-   like dye in water. Calm at rest: with no input the ink clears
-   back to clean paper. Adapted from Pavel Dobryakov's
-   WebGL-Fluid-Simulation (MIT), ported to Three.js r128 and
-   composited as ink over the CSS paper. Reacts to excitement.
-   ============================================================ */
-function setupFluid() {
-  const canvas = $('inkCanvas');
-  if (typeof THREE === 'undefined') return;
-
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
-  renderer.autoClear = false;
-  renderer.setPixelRatio(1);
-
-  // Half-float + linear filtering are required for the solver.
-  const gl = renderer.getContext();
-  const rtType = THREE.HalfFloatType;
-
-  const scene = new THREE.Scene();
-  const camera = new THREE.Camera();
-  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
-  quad.frustumCulled = false;
-  scene.add(quad);
-
-  /* ---- tunables ---- */
-  const SIM_RES = 128, DYE_RES = 512;
-  const PRESSURE_ITER = 20;
-  const PRESSURE_DECAY = 0.8;
-  const CURL = 30;            // vorticity (swirliness)
-  const VEL_DISS = 2.5;       // velocity dissipation (higher = settles faster)
-  const DYE_DISS = 1.4;       // ink dissipation (calm-at-rest clear-out)
-  const SPLAT_RADIUS = 0.0025;
-  const SPLAT_FORCE = 6000;
-  const INK_AMT = 0.15;       // ink per cursor splat
-  const INK = new THREE.Color(0x17140f);
-
-  /* ---- render targets ---- */
-  function createRT(w, h) {
-    return new THREE.WebGLRenderTarget(w, h, {
-      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
-      type: rtType, format: THREE.RGBAFormat,
-      depthBuffer: false, stencilBuffer: false,
-      wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping,
-    });
-  }
-  function createDouble(w, h) {
-    let a = createRT(w, h), b = createRT(w, h);
-    return { get read() { return a; }, get write() { return b; }, swap() { const t = a; a = b; b = t; } };
-  }
-  function getRes(res) {
-    let aspect = window.innerWidth / window.innerHeight;
-    if (aspect < 1) aspect = 1 / aspect;
-    const min = Math.round(res), max = Math.round(res * aspect);
-    return window.innerWidth > window.innerHeight ? { w: max, h: min } : { w: min, h: max };
-  }
-
-  let velocity, dye, divergence, curlRT, pressure, velTexel;
-  function initFBOs() {
-    const s = getRes(SIM_RES), d = getRes(DYE_RES);
-    velocity   = createDouble(s.w, s.h);
-    pressure   = createDouble(s.w, s.h);
-    dye        = createDouble(d.w, d.h);
-    divergence = createRT(s.w, s.h);
-    curlRT     = createRT(s.w, s.h);
-    velTexel   = new THREE.Vector2(1 / s.w, 1 / s.h);
-  }
-
-  /* ---- shaders ---- */
-  const baseVertex = `
-    varying vec2 vUv; varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
-    uniform vec2 texelSize;
-    void main() {
-      vUv = uv;
-      vL = vUv - vec2(texelSize.x, 0.0);
-      vR = vUv + vec2(texelSize.x, 0.0);
-      vT = vUv + vec2(0.0, texelSize.y);
-      vB = vUv - vec2(0.0, texelSize.y);
-      gl_Position = vec4(position.xy, 0.0, 1.0);
-    }
-  `;
-  function prog(frag, uniforms) {
-    return new THREE.ShaderMaterial({
-      uniforms: Object.assign({ texelSize: { value: new THREE.Vector2() } }, uniforms),
-      vertexShader: baseVertex, fragmentShader: frag,
-      depthTest: false, depthWrite: false, blending: THREE.NoBlending,
-    });
-  }
-
-  const splatMat = prog(`
-    precision highp float;
-    varying vec2 vUv;
-    uniform sampler2D uTarget; uniform float aspectRatio;
-    uniform vec3 color; uniform vec2 point; uniform float radius;
-    void main() {
-      vec2 p = vUv - point.xy; p.x *= aspectRatio;
-      vec3 splat = exp(-dot(p, p) / radius) * color;
-      vec3 base = texture2D(uTarget, vUv).xyz;
-      gl_FragColor = vec4(base + splat, 1.0);
-    }`, {
-    uTarget: { value: null }, aspectRatio: { value: 1 },
-    color: { value: new THREE.Vector3() }, point: { value: new THREE.Vector2() },
-    radius: { value: SPLAT_RADIUS },
-  });
-
-  const advectionMat = prog(`
-    precision highp float;
-    varying vec2 vUv;
-    uniform sampler2D uVelocity; uniform sampler2D uSource;
-    uniform vec2 texelSize; uniform float dt; uniform float dissipation;
-    void main() {
-      vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
-      gl_FragColor = texture2D(uSource, coord) / (1.0 + dissipation * dt);
-      gl_FragColor.a = 1.0;
-    }`, {
-    uVelocity: { value: null }, uSource: { value: null }, dt: { value: 0.016 }, dissipation: { value: 1.0 },
-  });
-
-  const divergenceMat = prog(`
-    precision highp float;
-    varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
-    uniform sampler2D uVelocity;
-    void main() {
-      float L = texture2D(uVelocity, vL).x;
-      float R = texture2D(uVelocity, vR).x;
-      float T = texture2D(uVelocity, vT).y;
-      float B = texture2D(uVelocity, vB).y;
-      float div = 0.5 * (R - L + T - B);
-      gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
-    }`, { uVelocity: { value: null } });
-
-  const curlMat = prog(`
-    precision highp float;
-    varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
-    uniform sampler2D uVelocity;
-    void main() {
-      float L = texture2D(uVelocity, vL).y;
-      float R = texture2D(uVelocity, vR).y;
-      float T = texture2D(uVelocity, vT).x;
-      float B = texture2D(uVelocity, vB).x;
-      gl_FragColor = vec4(0.5 * (R - L - T + B), 0.0, 0.0, 1.0);
-    }`, { uVelocity: { value: null } });
-
-  const vorticityMat = prog(`
-    precision highp float;
-    varying vec2 vUv; varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
-    uniform sampler2D uVelocity; uniform sampler2D uCurl;
-    uniform float curl; uniform float dt;
-    void main() {
-      float L = texture2D(uCurl, vL).x;
-      float R = texture2D(uCurl, vR).x;
-      float T = texture2D(uCurl, vT).x;
-      float B = texture2D(uCurl, vB).x;
-      float C = texture2D(uCurl, vUv).x;
-      vec2 force = 0.5 * vec2(abs(T) - abs(B), abs(R) - abs(L));
-      force /= length(force) + 0.0001;
-      force *= curl * C;
-      force.y *= -1.0;
-      vec2 vel = texture2D(uVelocity, vUv).xy;
-      gl_FragColor = vec4(vel + force * dt, 0.0, 1.0);
-    }`, { uVelocity: { value: null }, uCurl: { value: null }, curl: { value: CURL }, dt: { value: 0.016 } });
-
-  const pressureMat = prog(`
-    precision highp float;
-    varying vec2 vUv; varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
-    uniform sampler2D uPressure; uniform sampler2D uDivergence;
-    void main() {
-      float L = texture2D(uPressure, vL).x;
-      float R = texture2D(uPressure, vR).x;
-      float T = texture2D(uPressure, vT).x;
-      float B = texture2D(uPressure, vB).x;
-      float div = texture2D(uDivergence, vUv).x;
-      gl_FragColor = vec4((L + R + B + T - div) * 0.25, 0.0, 0.0, 1.0);
-    }`, { uPressure: { value: null }, uDivergence: { value: null } });
-
-  const gradientMat = prog(`
-    precision highp float;
-    varying vec2 vUv; varying vec2 vL; varying vec2 vR; varying vec2 vT; varying vec2 vB;
-    uniform sampler2D uPressure; uniform sampler2D uVelocity;
-    void main() {
-      float L = texture2D(uPressure, vL).x;
-      float R = texture2D(uPressure, vR).x;
-      float T = texture2D(uPressure, vT).x;
-      float B = texture2D(uPressure, vB).x;
-      vec2 vel = texture2D(uVelocity, vUv).xy;
-      vel -= vec2(R - L, T - B);
-      gl_FragColor = vec4(vel, 0.0, 1.0);
-    }`, { uPressure: { value: null }, uVelocity: { value: null } });
-
-  const clearMat = prog(`
-    precision highp float;
-    varying vec2 vUv;
-    uniform sampler2D uTexture; uniform float value;
-    void main() { gl_FragColor = value * texture2D(uTexture, vUv); }`, {
-    uTexture: { value: null }, value: { value: PRESSURE_DECAY },
-  });
-
-  const displayMat = new THREE.ShaderMaterial({
-    uniforms: { uTexture: { value: null }, uInk: { value: INK } },
-    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy,0.0,1.0); }`,
-    fragmentShader: `
-      precision highp float;
-      varying vec2 vUv;
-      uniform sampler2D uTexture; uniform vec3 uInk;
-      void main() {
-        float a = clamp(texture2D(uTexture, vUv).r, 0.0, 1.0);
-        gl_FragColor = vec4(uInk * a, a); // premultiplied ink over paper
-      }`,
-    depthTest: false, depthWrite: false, blending: THREE.NoBlending, transparent: true,
-  });
-
-  function blit(target, material) {
-    quad.material = material;
-    renderer.setRenderTarget(target);
-    renderer.render(scene, camera);
-  }
-
-  /* ---- input → splats ---- */
-  const pointer = { x: 0.5, y: 0.5, dx: 0, dy: 0, moved: false };
-  function onMove(e) {
-    const x = e.clientX / window.innerWidth;
-    const y = 1.0 - e.clientY / window.innerHeight;
-    pointer.dx = (x - pointer.x) * SPLAT_FORCE;
-    pointer.dy = (y - pointer.y) * SPLAT_FORCE;
-    pointer.x = x; pointer.y = y; pointer.moved = true;
-  }
-  window.addEventListener('mousemove', onMove);
-
-  function splat(x, y, dx, dy, r, g, b) {
-    const aspect = window.innerWidth / window.innerHeight;
-    splatMat.uniforms.aspectRatio.value = aspect;
-    splatMat.uniforms.point.value.set(x, y);
-    splatMat.uniforms.radius.value = SPLAT_RADIUS * (aspect > 1 ? aspect : 1);
-    // velocity
-    splatMat.uniforms.uTarget.value = velocity.read.texture;
-    splatMat.uniforms.color.value.set(dx, dy, 0);
-    splatMat.uniforms.texelSize.value.copy(velTexel);
-    blit(velocity.write, splatMat); velocity.swap();
-    // dye (ink)
-    splatMat.uniforms.uTarget.value = dye.read.texture;
-    splatMat.uniforms.color.value.set(r, g, b);
-    blit(dye.write, splatMat); dye.swap();
-  }
-
-  /* ---- one simulation step ---- */
-  function step(dt) {
-    advectionMat.uniforms.texelSize.value.copy(velTexel);
-    divergenceMat.uniforms.texelSize.value.copy(velTexel);
-    curlMat.uniforms.texelSize.value.copy(velTexel);
-    vorticityMat.uniforms.texelSize.value.copy(velTexel);
-    pressureMat.uniforms.texelSize.value.copy(velTexel);
-    gradientMat.uniforms.texelSize.value.copy(velTexel);
-
-    // curl
-    curlMat.uniforms.uVelocity.value = velocity.read.texture;
-    blit(curlRT, curlMat);
-    // vorticity confinement
-    vorticityMat.uniforms.uVelocity.value = velocity.read.texture;
-    vorticityMat.uniforms.uCurl.value = curlRT.texture;
-    vorticityMat.uniforms.dt.value = dt;
-    blit(velocity.write, vorticityMat); velocity.swap();
-    // divergence
-    divergenceMat.uniforms.uVelocity.value = velocity.read.texture;
-    blit(divergence, divergenceMat);
-    // decay pressure
-    clearMat.uniforms.uTexture.value = pressure.read.texture;
-    blit(pressure.write, clearMat); pressure.swap();
-    // pressure solve (Jacobi)
-    pressureMat.uniforms.uDivergence.value = divergence.texture;
-    for (let i = 0; i < PRESSURE_ITER; i++) {
-      pressureMat.uniforms.uPressure.value = pressure.read.texture;
-      blit(pressure.write, pressureMat); pressure.swap();
-    }
-    // subtract pressure gradient → divergence-free velocity
-    gradientMat.uniforms.uPressure.value = pressure.read.texture;
-    gradientMat.uniforms.uVelocity.value = velocity.read.texture;
-    blit(velocity.write, gradientMat); velocity.swap();
-    // advect velocity
-    advectionMat.uniforms.uVelocity.value = velocity.read.texture;
-    advectionMat.uniforms.uSource.value = velocity.read.texture;
-    advectionMat.uniforms.dt.value = dt;
-    advectionMat.uniforms.dissipation.value = VEL_DISS;
-    blit(velocity.write, advectionMat); velocity.swap();
-    // advect dye
-    advectionMat.uniforms.uVelocity.value = velocity.read.texture;
-    advectionMat.uniforms.uSource.value = dye.read.texture;
-    advectionMat.uniforms.dissipation.value = DYE_DISS;
-    blit(dye.write, advectionMat); dye.swap();
-  }
-
-  function resize() {
-    renderer.setSize(window.innerWidth, window.innerHeight, false);
-    initFBOs();
-  }
-
-  let last = performance.now();
-  let exciteCooldown = 0;
-  function frame() {
-    const now = performance.now();
-    const dt = Math.min(0.016, (now - last) / 1000);
-    last = now;
-
-    if (pointer.moved) {
-      splat(pointer.x, pointer.y, pointer.dx, pointer.dy, INK_AMT, INK_AMT, INK_AMT);
-      pointer.moved = false;
-    }
-    // Voice tie-in: while excited/speaking, gently breathe ink at center.
-    exciteCooldown -= dt;
-    if (excitement > 0.4 && exciteCooldown <= 0) {
-      const a = Math.random() * Math.PI * 2;
-      splat(0.5, 0.5, Math.cos(a) * 1200 * excitement, Math.sin(a) * 1200 * excitement,
-            INK_AMT * 0.6, INK_AMT * 0.6, INK_AMT * 0.6);
-      exciteCooldown = 0.12;
-    }
-
-    step(dt);
-
-    displayMat.uniforms.uTexture.value = dye.read.texture;
-    blit(null, displayMat);
-
-    requestAnimationFrame(frame);
-  }
-
-  window.addEventListener('resize', resize);
-  resize();
-  frame();
-}
-
-/* ============================================================
-   THE ENTITY — Three.js noise-displaced torus
-   A fluid ring (Siri/Gemini style): a TorusGeometry whose
-   vertices are pushed around by 3D Simplex noise each frame,
-   with vertex colors interpolated by the same noise field and
-   lit by white / red / blue point lights. Reacts to voice.
-   ============================================================ */
-function setupEntity() {
-  const canvas = $('entityCanvas');
-
-  // Guard: if libraries failed to load, bail gracefully
-  if (typeof THREE === 'undefined') {
-    console.warn('Three.js not loaded');
-    return;
-  }
-
-  const renderer = new THREE.WebGLRenderer({
-    canvas,
-    antialias: true,
-    alpha: true,
-  });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-
-  const scene = new THREE.Scene();
-
-  const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
-  camera.position.set(0, 0, 22);
-
-  /* ---- Matte ink: a custom unlit shader. No scene lights needed;
-         silhouette feathers via a view-facing (rim) term so the ring
-         edges bleed softly like wet ink on paper. ---- */
-
-  /* ---- Geometry: a torus with a per-vertex ink-density attribute ---- */
-  const TUBE_SEGMENTS = 200;   // around the ring (smoothness of the circle)
-  const RADIAL_SEGMENTS = 44;  // around the tube
-  const RING_RADIUS = 7;
-  const TUBE_RADIUS = 2.2;
-
-  const geometry = new THREE.TorusGeometry(
-    RING_RADIUS, TUBE_RADIUS, RADIAL_SEGMENTS, TUBE_SEGMENTS
-  );
-
-  // Store the pristine positions so we displace from the original each frame
-  const basePositions = geometry.attributes.position.array.slice();
-  const vertexCount = geometry.attributes.position.count;
-
-  // Color attribute
-  const colors = new Float32Array(vertexCount * 3);
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      uInk: { value: new THREE.Color(0x17140f) },
-      uOpacity: { value: 0.92 },
-    },
-    vertexShader: `
-      attribute vec3 color;          // .r carries ink density (0..1)
-      varying float vDensity;
-      varying float vRim;
-      void main() {
-        vDensity = color.r;
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        vec3 n = normalize(normalMatrix * normal);
-        vRim = abs(dot(n, normalize(-mv.xyz)));
-        gl_Position = projectionMatrix * mv;
-      }
-    `,
-    fragmentShader: `
-      precision highp float;
-      uniform vec3 uInk;
-      uniform float uOpacity;
-      varying float vDensity;
-      varying float vRim;
-      void main() {
-        float core = smoothstep(0.05, 0.5, vRim);   // feather the silhouette
-        float dens = 0.70 + 0.30 * vDensity;          // subtle ink mottle
-        gl_FragColor = vec4(uInk, core * dens * uOpacity);
-      }
-    `,
-    transparent: true,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-  });
-
-  const torus = new THREE.Mesh(geometry, material);
-  torus.rotation.x = 0; // front-facing: donut hole points at the camera
-  scene.add(torus);
-
-  /* A faint ink ghost just behind, for depth */
-  const ghostMat = new THREE.MeshBasicMaterial({
-    color: 0x17140f, wireframe: true, transparent: true, opacity: 0.05,
-  });
-  const ghost = new THREE.Mesh(geometry, ghostMat);
-  torus.add(ghost);
-  ghost.scale.setScalar(1.04);
-
-  /* ---- Noise (inlined 3D simplex — no external dependency) ---- */
-  const simplex = makeSimplex3D();
-
-  /* The per-vertex 'color' attribute now carries a single ink-density
-     value (in .r), derived from the same noise field that displaces the
-     surface — denser ink in the troughs, lighter on the crests. */
-
-  const pos = geometry.attributes.position;
-  const nrm = geometry.attributes.normal;
-  const col = geometry.attributes.color;
-
-  let time = 0;
-
-  function resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    renderer.setSize(w, h, false);
-    const aspect = w / h;
-    camera.aspect = aspect;
-
-    /* Fit the front-facing ring on screen. The full ring diameter is
-       now visible, so distance is computed from the object's outer
-       extent (ring + tube + displacement headroom) and the viewport,
-       choosing the limiting dimension (width on portrait, height on
-       landscape). fill = fraction of the limiting half-axis to occupy. */
-    const objRadius = RING_RADIUS + TUBE_RADIUS + 4.5; // includes wave headroom
-    const fill = 0.62;
-    const tan = Math.tan((camera.fov * Math.PI / 180) / 2);
-    let dist = objRadius / (fill * tan);
-    if (aspect < 1) dist = objRadius / (fill * tan * aspect); // narrow → pull back
-    camera.position.z = dist;
-
-    camera.updateProjectionMatrix();
-  }
-
-  let dispEnergy = 0;
-  function animate() {
-    const level = getVoiceLevel();
-    const targetEnergy = Math.max(level, excitement * 0.55);
-
-    // Low-pass the energy so the orb swells and ebbs like fluid rather than
-    // jolting on every syllable — the speaking motion stays soft and flowing.
-    dispEnergy += (targetEnergy - dispEnergy) * 0.05;
-    const energy = dispEnergy;
-
-    // Time advances faster with energy — the ring "boils" gently when active
-    time += 0.006 + energy * 0.018;
-
-    // Displacement amplitude grows with voice (eased low so the surface
-    // undulates softly instead of spiking; stays within tube headroom)
-    const amp = 0.7 + energy * 1.25;
-    // Spatial frequency of the noise
-    const freq = 0.18;
-
-    const n = new THREE.Vector3();
-
-    for (let i = 0; i < vertexCount; i++) {
-      const ix = i * 3;
-      const bx = basePositions[ix];
-      const by = basePositions[ix + 1];
-      const bz = basePositions[ix + 2];
-
-      // Sample 3D noise at the vertex's base position (+ time on 4th axis via offset)
-      const noise = simplex.noise3D(
-        bx * freq + time,
-        by * freq + time * 0.8,
-        bz * freq
-      );
-
-      // Displace along the vertex normal
-      n.set(nrm.array[ix], nrm.array[ix + 1], nrm.array[ix + 2]);
-      const disp = noise * amp;
-      pos.array[ix]     = bx + n.x * disp;
-      pos.array[ix + 1] = by + n.y * disp;
-      pos.array[ix + 2] = bz + n.z * disp;
-
-      // Ink density: map noise (-1..1) to 0..1. Troughs read denser.
-      const dens = 1.0 - (noise * 0.5 + 0.5);
-      col.array[ix]     = dens;
-      col.array[ix + 1] = dens;
-      col.array[ix + 2] = dens;
-    }
-
-    pos.needsUpdate = true;
-    col.needsUpdate = true;
-    geometry.computeVertexNormals();
-
-    // Gentle continuous rotation; speeds up slightly with energy
-    torus.rotation.z += 0.0016 + energy * 0.004;       // spin in its own plane
-    torus.rotation.x = Math.sin(time * 0.18) * 0.06;   // tiny tilt, stays front-facing
-    torus.rotation.y = Math.cos(time * 0.14) * 0.06;
-
-    excitement *= 0.965;
-    if (excitement < 0.015) excitement = 0;
-
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
-  }
-
-  window.addEventListener('resize', resize);
-  resize();
-  animate();
-}
-
-
-/* ============================================================
-   CONNECTED PARTICLE MESH — overlay
-   ============================================================ */
-function setupMesh() {
-  const canvas = $('meshCanvas');
-  const ctx = canvas.getContext('2d');
-  let W = 0, H = 0;
-  let particles = [];
-
-  function resize() {
-    W = window.innerWidth;
-    H = window.innerHeight;
-    canvas.width = W * devicePixelRatio;
-    canvas.height = H * devicePixelRatio;
-    canvas.style.width = W + 'px';
-    canvas.style.height = H + 'px';
-    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-    spawn();
-  }
-
-  function spawn() {
-    const n = Math.min(70, Math.max(28, Math.floor(W * H / 34000)));
-    particles = Array.from({ length: n }, () => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.16,
-      vy: (Math.random() - 0.5) * 0.16,
-      size: 0.6 + Math.pow(Math.random(), 2.2) * 3.2, // mostly tiny specks, a few blots
-      twinkle: Math.random() * Math.PI * 2,
-      alpha: 0.06 + Math.random() * 0.16,
-    }));
-  }
-
-  function draw() {
-    const level = voiceLevel;
-    const energy = Math.max(level, excitement * 0.55);
-    const cx = W / 2;
-    const cy = H / 2;
-
-    ctx.clearRect(0, 0, W, H);
-
-    particles.forEach(p => {
-      p.x += p.vx * (1 + energy * 1.4);
-      p.y += p.vy * (1 + energy * 1.4);
-      p.twinkle += 0.028;
-
-      /* Mild pull toward center when entity is active */
-      if (energy > 0.08) {
-        const dx = cx - p.x;
-        const dy = cy - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 1) {
-          p.vx += (dx / dist) * energy * 0.0022;
-          p.vy += (dy / dist) * energy * 0.0022;
-        }
-      }
-
-      p.vx *= 0.993;
-      p.vy *= 0.993;
-
-      const vmag = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-      const vmax = 0.5 + energy * 0.7;
-      if (vmag > vmax) {
-        p.vx = (p.vx / vmag) * vmax;
-        p.vy = (p.vy / vmag) * vmax;
-      }
-
-      if (p.x < -5) p.x = W + 5;
-      if (p.x > W + 5) p.x = -5;
-      if (p.y < -5) p.y = H + 5;
-      if (p.y > H + 5) p.y = -5;
-    });
-
-    // Soft ink specks — radial gradient blots that bleed into the paper.
-    particles.forEach(p => {
-      const tw = Math.sin(p.twinkle) * 0.12 + 0.9;
-      const r = (p.size + energy * 0.6) * tw;
-      const a = Math.min(0.5, p.alpha * (1 + energy * 0.8));
-      const outer = r * 2.2;
-      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, outer);
-      g.addColorStop(0, `rgba(23, 20, 15, ${a})`);
-      g.addColorStop(0.5, `rgba(23, 20, 15, ${a * 0.4})`);
-      g.addColorStop(1, 'rgba(23, 20, 15, 0)');
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, outer, 0, Math.PI * 2);
-      ctx.fillStyle = g;
-      ctx.fill();
-    });
-
-    requestAnimationFrame(draw);
-  }
-
-  window.addEventListener('resize', resize);
-  resize();
-  draw();
-}
-
-/* ============================================================
-   CLOCK
-   ============================================================ */
-function tickClock() {
-  const d = new Date();
-  $('topTime').textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-setInterval(tickClock, 1000);
-tickClock();
-
-/* ============================================================
-   WIRE UP
-   ============================================================ */
-runBtn.addEventListener('click', () => runCommand(cmdInput.value));
-cmdInput.addEventListener('keydown', e => { if (e.key === 'Enter') runCommand(cmdInput.value); });
-voiceBtn.addEventListener('click', () => {
-  if (!recognition) return;
-  if (isListening) recognition.stop(); else recognition.start();
-});
-document.querySelectorAll('.rail-icon').forEach(el => {
-  el.addEventListener('click', () => {
-    if (!el.dataset.mod) return;
-    setActiveModule(el.dataset.mod);
-    respond(`Opening ${el.dataset.mod}.`);
-  });
-});
-
-setupVoice();
-setupCursor();
-setupOilFluid();
-setupFluid();
-setupEntity();
-setupMesh();
-addLog('Ready');
+  <div class="orb-bg">
+    <div class="stage">
+      <canvas id="orb"></canvas>
+
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="greeting">
+      <h1>What do you want to work on?</h1>
+      <p>Speak naturally — run a campaign, add a product, or check your numbers.</p>
+    </div>
+
+    <section class="thread" id="thread" aria-live="polite"></section>
+
+    <div class="composer">
+      <div class="voice-cta">
+        <button class="bigmic" id="bigmic" aria-label="Tap to speak">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+        </button>
+        <div class="voice-label" id="voiceLabel">Tap to speak</div>
+      </div>
+
+      <div class="ortype">or type</div>
+
+      <form class="inputrow" id="form" autocomplete="off">
+        <input id="input" type="text" placeholder="Ask anything…" aria-label="Message Maropost DaVinci">
+        <button type="button" class="iconbtn mic" id="mic" aria-label="Speak" title="Speak">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+        </button>
+        <button type="submit" class="iconbtn send" id="send" aria-label="Send" title="Send" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </form>
+
+      <div class="statepill"><span class="pip"></span><span id="statetext">idle</span></div>
+
+      <div class="chips" id="chips">
+        <button class="chip-s" data-cmd="Run a campaign">Run a campaign</button>
+        <button class="chip-s" data-cmd="Add a product">Add a product</button>
+        <button class="chip-s" data-cmd="Show last week's revenue">Show last week's revenue</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div id="tweaks-root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="tweaks-app.jsx"></script>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
 </script>
+<script type="module" src="app.js"></script>
+
 </body>
 </html>
