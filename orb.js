@@ -5,19 +5,6 @@ import * as THREE from 'three';
 
 const canvas = document.getElementById('orb');
 
-// Borderless fallback glow (silent WebGL-fail degradation) + always-on gentle float.
-;(() => {
-  const s = document.createElement('style');
-  s.textContent = `.orb-ring-fallback{position:absolute;inset:6%;border-radius:50%;pointer-events:none;background:radial-gradient(ellipse at center,transparent 52%,rgba(24,27,33,0.045) 68%,transparent 84%)}
-@keyframes orbFloat{0%,100%{transform:translate3d(0,-1.1%,0) scale(1)}50%{transform:translate3d(0,1.1%,0) scale(1.012)}}
-.stage{animation:orbFloat 9s ease-in-out infinite}
-@media (prefers-reduced-motion:reduce){.stage{animation:none}}`;
-  document.head.appendChild(s);
-  const r = document.createElement('div');
-  r.className = 'orb-ring-fallback';
-  if (canvas && canvas.parentNode) canvas.parentNode.appendChild(r);
-})();
-
 const TAU = Math.PI * 2;
 const AUDIO_BANDS = 16;
 const PHYS_SEGMENTS = 48;
@@ -36,6 +23,9 @@ const membraneFlux = new Float32Array(PHYS_SEGMENTS);
 const nextWave = new Float32Array(PHYS_SEGMENTS);
 const nextVelocity = new Float32Array(PHYS_SEGMENTS);
 const pointerField = { active:false, theta:0, radius:0, velocity:0, lastX:0, lastY:0, lastT:0 };
+// magnetic-cursor target (inverse-aspect NDC) + smoothed uniform values
+const pointerTarget = { x:0, y:0, str:0 };
+let pointerSmX = 0, pointerSmY = 0, pointerSmStr = 0;
 let nextImpulseAt = 0, lastFrameTime = 0, pointerCool = 0;
 
 // ---- exported state API ----
@@ -54,7 +44,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 4);
 camera.position.z = 1;
 
-const PARTICLES = 72000;
+const PARTICLES = 96000;
 const positions = new Float32Array(PARTICLES * 3);
 const angles = new Float32Array(PARTICLES);
 const baseRadius = new Float32Array(PARTICLES);
@@ -62,6 +52,7 @@ const seeds = new Float32Array(PARTICLES);
 const bands = new Float32Array(PARTICLES);
 const bursts = new Float32Array(PARTICLES);
 const gains = new Float32Array(PARTICLES);
+const gaps = new Float32Array(PARTICLES);
 
 for (let i = 0; i < PARTICLES; i++) {
   const pick = Math.random();
@@ -69,18 +60,26 @@ for (let i = 0; i < PARTICLES; i++) {
   const angle = Math.random() * TAU;
   let radius, band, burst;
 
-  if (pick < 0.64) {
-    radius = 0.595 + Math.pow(bandRand, 0.82) * 0.063;
+  if (pick < 0.42) {
+    // thin, delicate core line
+    radius = 0.605 + Math.pow(bandRand, 1.0) * 0.045;
     band = 0.0;
-    burst = Math.random() * 0.18;
-  } else if (pick < 0.93) {
-    radius = 0.636 + Math.pow(bandRand, 1.65) * 0.185;
+    burst = Math.random() * 0.16;
+  } else if (pick < 0.78) {
+    // smoky mid detail (clusters / gaps)
+    radius = 0.610 + Math.pow(bandRand, 1.7) * 0.220;
     band = 1.0;
-    burst = Math.random() * 0.62;
-  } else {
-    radius = 0.665 + Math.pow(bandRand, 1.08) * 0.225;
+    burst = Math.random() * 0.60;
+  } else if (pick < 0.92) {
+    // outer wisps / hair
+    radius = 0.660 + Math.pow(bandRand, 1.1) * 0.300;
     band = 2.0;
-    burst = 0.48 + Math.random() * 0.52;
+    burst = 0.45 + Math.random() * 0.55;
+  } else {
+    // wide drifting dust (inside + outside the ring)
+    radius = 0.420 + bandRand * 0.920;
+    band = 3.0;
+    burst = Math.random();
   }
 
   angles[i] = angle;
@@ -89,6 +88,7 @@ for (let i = 0; i < PARTICLES; i++) {
   bands[i] = band;
   bursts[i] = burst;
   gains[i] = 0.45 + Math.random() * 0.75;
+  gaps[i] = Math.random() * 1000.0;
 }
 
 const geo = new THREE.BufferGeometry();
@@ -99,6 +99,7 @@ geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
 geo.setAttribute('aBand', new THREE.BufferAttribute(bands, 1));
 geo.setAttribute('aBurst', new THREE.BufferAttribute(bursts, 1));
 geo.setAttribute('aGain', new THREE.BufferAttribute(gains, 1));
+geo.setAttribute('aGap', new THREE.BufferAttribute(gaps, 1));
 
 const uniforms = {
   uTime:{ value:0 },
@@ -108,6 +109,8 @@ const uniforms = {
   uAspect:{ value:1 },
   uRadius:{ value:0.64 },
   uDpr:{ value:1 },
+  uPointer:{ value:new THREE.Vector2(0, 0) },
+  uPointerStr:{ value:0 },
   uAudio:{ value:audioBands },
   uWave:{ value:membraneWave },
   uFlux:{ value:membraneFlux }
@@ -123,6 +126,7 @@ const membraneMat = new THREE.ShaderMaterial({
     attribute float aBand;
     attribute float aBurst;
     attribute float aGain;
+    attribute float aGap;
     uniform float uTime;
     uniform float uAgit;
     uniform float uSpeakEnergy;
@@ -130,12 +134,16 @@ const membraneMat = new THREE.ShaderMaterial({
     uniform float uAspect;
     uniform float uRadius;
     uniform float uDpr;
+    uniform vec2 uPointer;
+    uniform float uPointerStr;
     uniform float uAudio[16];
     uniform float uWave[48];
     uniform float uFlux[48];
     varying float vAlpha;
     varying float vInk;
     varying float vSeed;
+    varying float vEdge;
+    varying float vHueP;
 
     float hash(float n){ return fract(sin(n)*43758.5453123); }
     float noise(float x){
@@ -143,6 +151,19 @@ const membraneMat = new THREE.ShaderMaterial({
       float f=fract(x);
       f=f*f*(3.0-2.0*f);
       return mix(hash(i),hash(i+1.0),f);
+    }
+    float hash2(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123); }
+    float n2(vec2 p){
+      vec2 i=floor(p), f=fract(p);
+      f=f*f*(3.0-2.0*f);
+      float a=hash2(i), b=hash2(i+vec2(1.0,0.0)), c=hash2(i+vec2(0.0,1.0)), d=hash2(i+vec2(1.0,1.0));
+      return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);
+    }
+    vec2 curl2(vec2 p){
+      float e=0.12;
+      float x1=n2(p+vec2(0.0,e)), x2=n2(p-vec2(0.0,e));
+      float y1=n2(p+vec2(e,0.0)), y2=n2(p-vec2(e,0.0));
+      return vec2(x1-x2, y2-y1)/(2.0*e); // (dN/dy, -dN/dx) — divergence-free flow
     }
     float audioAt(float x){
       float v=0.0;
@@ -184,36 +205,76 @@ const membraneMat = new THREE.ShaderMaterial({
       float impact=max(flux,audio*0.9);
       float smoke=smoothstep(0.5,1.5,aBand);
       float hair=smoothstep(1.5,2.0,aBand);
+      float dust=smoothstep(2.5,3.0,aBand);
+      float solid=1.0-dust;            // ring particles (core/smoke/hair) vs wide dust
 
-      float organic=(noise(theta*5.0+t*0.075+aSeed*0.010)-0.5)*0.012;
-      organic+=(noise(theta*13.0-t*0.115+aSeed*0.017)-0.5)*0.007;
-      float breath=sin(t*0.82+aSeed*0.035)*0.004;
+      // idle wave — living undulation so the ring breathes/ripples even at rest (stays round)
+      float lobe=(sin(theta*6.2831853*3.0+t*0.30)+0.7*sin(theta*6.2831853*5.0-t*0.22)+0.45*sin(theta*6.2831853*7.0+t*0.15))*0.0095;
+
+      float organic=(noise(theta*5.0+t*0.075+aSeed*0.010)-0.5)*0.0145;
+      organic+=(noise(theta*13.0-t*0.115+aSeed*0.017)-0.5)*0.0085;
+      float breath=sin(t*0.82+aSeed*0.035)*0.006;
       float membrane=wave*(0.130+smoke*0.190+hair*0.255)*aGain;
       float flutter=sin(t*(5.0+uAgit*7.0)+aSeed*0.13+angle*2.0)*0.0045*flux;
 
       float smokeLift=(noise(theta*23.0+t*0.18+aSeed*0.023)-0.34)*(0.013+uAgit*0.022+flux*0.044);
       float hairLift=aBurst*(0.018+0.160*outWave+0.085*flux);
-      float radius=aBaseRadius+organic+breath+membrane+flutter+audio*0.012*aGain;
-      radius+=smoke*smokeLift;
-      radius+=hair*hairLift;
+      float dustDrift=(noise(aSeed*0.7+t*0.06)-0.5)*0.05;   // tiny living drift across the field
+      float defGate=smoothstep(0.61,0.76,aBaseRadius);   // 0 at the inner edge → inside stays a perfect circle; deformation grows outward
+      float radius=aBaseRadius+(organic+breath+membrane+flutter+lobe)*solid*defGate+audio*0.012*aGain;
+      radius+=smoke*smokeLift*solid*defGate;
+      radius+=hair*hairLift*solid;
+      radius+=dust*dustDrift;
 
       float tangent=(noise(aSeed+t*0.16)-0.5)*(0.004+smoke*0.014+flux*0.026);
-      tangent+=wave*0.030*(noise(theta*17.0+aSeed*0.02)-0.5);
-      vec2 radial=vec2(cos(angle),sin(angle));
+      tangent+=wave*0.030*(noise(theta*17.0+aSeed*0.02)-0.5)*solid;
+      tangent+=dust*(noise(aSeed*1.3+t*0.05)-0.5)*0.06;
+      float rot=uTime*0.04;            // very slow overall rotation of the field
+      vec2 radial=vec2(cos(angle+rot),sin(angle+rot));
       vec2 tang=vec2(-radial.y,radial.x);
       vec2 pos=radial*radius+tang*tangent;
-      if(uAspect>1.0){ pos.x/=uAspect; } else { pos.y*=uAspect; }
 
+      // subtle curl-noise tendrils OUTSIDE the rim — ring stays a clean circle; only outer wisps curl
+      float outer=smoothstep(0.64,1.05,aBaseRadius);
+      vec2 cflow=curl2(pos*2.6+vec2(t*0.085,-t*0.07));
+      pos+=cflow*(outer*0.04);
+      float curveAmt=outer*clamp(length(cflow)*0.45,0.0,1.0);
+
+      // soft magnetic cursor — gentle pull + faint swirl (uPointer is inverse-corrected in JS so this is pre-aspect)
+      vec2 toP=uPointer-pos;
+      float pd=length(toP);
+      float pull=uPointerStr*exp(-pd*pd/(2.0*0.30*0.30));
+      pos+=toP*pull*0.05;
+      pos+=vec2(-toP.y,toP.x)*pull*0.02;
+
+      if(uAspect>1.0){ pos.x/=uAspect; } else { pos.y*=uAspect; }
       gl_Position=vec4(pos,0.0,1.0);
       float size=mix(1.00,2.45,smoke)*uDpr;
       size*=1.0+flux*1.25+hair*(outWave+flux)*1.05;
+      size*=1.0-dust*0.55;             // dust = tiny points
+      size*=1.0-curveAmt*0.5;          // finer where caught in the curl / curved flow
       gl_PointSize=size;
 
-      float ringAlpha=mix(0.155,0.052,smoke);
-      ringAlpha=mix(ringAlpha,0.075,hair);
+      // uneven edge darkness — broad darker/lighter sectors + finer grain, slowly drifting
+      float angBroad=noise(theta*3.0+t*0.035);
+      float angFine=noise(theta*11.0+aGap*0.010+t*0.06);
+      float uneven=angBroad*0.6+angFine*0.4;
+
+      float ringAlpha=mix(0.150,0.060,smoke);
+      ringAlpha=mix(ringAlpha,0.090,hair);
+      ringAlpha=mix(ringAlpha,0.045,dust);
       vAlpha=ringAlpha*(0.66+aGain*0.48)*(1.0+flux*1.05+absWave*0.92+hair*aBurst*0.42);
-      vInk=clamp(0.34+flux*0.44+outWave*0.28+hair*0.18+audio*0.18,0.0,1.0);
+      vAlpha*=mix(1.0, 0.40+1.0*uneven, mix(0.85,0.6,dust));
+      float pDark=hash(aSeed*0.013);
+      vInk=clamp(0.34+flux*0.44+outWave*0.28+hair*0.18+audio*0.18+pDark*0.26,0.0,1.0);
       vSeed=aSeed;
+
+      // faint white-light spectral shimmer on the edges — travels around the rim and over time (alive at idle)
+      float edge=smoke*0.6+hair*1.0+dust*0.5;
+      vEdge=edge;
+      vHueP=theta*2.5+t*0.05+wave*1.4;
+      float lightWave=sin(theta*18.0-t*0.8+wave*6.0)*0.5+0.5;
+      vAlpha*=1.0+edge*(lightWave-0.5)*0.5+edge*flux*0.4;
     }`,
   fragmentShader:`
     precision highp float;
@@ -221,7 +282,10 @@ const membraneMat = new THREE.ShaderMaterial({
     varying float vAlpha;
     varying float vInk;
     varying float vSeed;
+    varying float vEdge;
+    varying float vHueP;
     float hash(float n){ return fract(sin(n)*43758.5453123); }
+    vec3 spectrum(float h){ h=fract(h); return clamp(abs(mod(h*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0,0.0,1.0); }
     void main(){
       vec2 p=gl_PointCoord-0.5;
       float d=length(p);
@@ -229,7 +293,9 @@ const membraneMat = new THREE.ShaderMaterial({
       disc*=0.78+0.22*(1.0-smoothstep(0.0,0.32,d));
       float grain=0.86+0.14*hash(vSeed+floor(uTime*14.0));
       vec3 ink=mix(vec3(0.34,0.37,0.41),vec3(0.03,0.035,0.04),vInk);
-      gl_FragColor=vec4(ink,vAlpha*disc*grain);
+      float hueAmt=vEdge*0.18;
+      vec3 col=mix(ink,ink*0.65+spectrum(vHueP)*0.45,hueAmt);
+      gl_FragColor=vec4(col,vAlpha*disc*grain);
     }`,
   transparent:true,
   depthTest:false,
@@ -270,9 +336,15 @@ function updatePointer(e){
   pointerField.lastY = y;
   pointerField.lastT = now;
   pointerCool = 0.55;
+
+  // magnetic target: inverse of the shader's aspect correction so it lands in the orb's pre-aspect space
+  const asp = uniforms.uAspect.value;
+  pointerTarget.x = asp > 1.0 ? x * asp : x;
+  pointerTarget.y = asp > 1.0 ? y : y / asp;
+  pointerTarget.str = 1.0;
 }
 document.addEventListener('pointermove', updatePointer, { passive: true });
-document.addEventListener('pointerleave', () => { pointerField.active = false; }, { passive: true });
+document.addEventListener('pointerleave', () => { pointerField.active = false; pointerTarget.str = 0; }, { passive: true });
 
 // ---- voice out (speechSynthesis) — auto-pick the most natural available voice ----
 let chosenVoice = null, voices = [];
@@ -402,9 +474,9 @@ function updateMembranePhysics(time, dt){
   pointerCool = Math.max(0, pointerCool - dt);
   if ((pointerField.active || pointerCool > 0) && pointerField.radius > 0.34 && pointerField.radius < 1.03){
     const center = Math.floor(pointerField.theta * PHYS_SEGMENTS);
-    const radial = Math.max(0, 1 - Math.abs(pointerField.radius - 0.64) / 0.38);
-    const strength = (0.018 + pointerField.velocity * 0.020) * radial * (pointerField.active ? 1.0 : 0.45);
-    addMembraneImpulse(center, strength, 2.15 + radial * 1.4);
+    const radial = Math.max(0, 1 - Math.abs(pointerField.radius - 0.64) / 0.42);
+    const strength = (0.009 + pointerField.velocity * 0.011) * radial * (pointerField.active ? 1.0 : 0.45);
+    addMembraneImpulse(center, strength, 2.6 + radial * 1.6);
   }
   if (time >= nextImpulseAt){
     const active = speaking || listening || thinking || drive > 0.08;
@@ -412,14 +484,14 @@ function updateMembranePhysics(time, dt){
       const sweepRaw = time * 0.055 + 0.17 * Math.sin(time * 0.37) + Math.random() * 0.12;
       const sweep = sweepRaw - Math.floor(sweepRaw);
       const center = Math.floor(sweep * PHYS_SEGMENTS);
-      const strength = (0.018 + drive * 0.155) * (speaking ? 1.55 : 1.0) * (thinking ? 0.7 : 1.0);
+      const strength = (0.030 + drive * 0.155) * (speaking ? 1.55 : 1.0) * (thinking ? 0.7 : 1.0);
       const spread = thinking ? (0.7 + Math.random() * 0.35) : (1.05 + drive * 1.35 + Math.random() * 0.45);
       addMembraneImpulse(center, strength, spread);
     }
     const baseGap = thinking ? 0.07 + Math.random() * 0.10
                   : speaking ? 0.10 + Math.random() * 0.17
                   : listening ? 0.18 + Math.random() * 0.26
-                  : 0.55 + Math.random() * 0.9;
+                  : 0.30 + Math.random() * 0.55;
     nextImpulseAt = time + baseGap;
   }
 
@@ -434,9 +506,9 @@ function updateMembranePhysics(time, dt){
     const localAudio = audioBands[audioIdx] * 0.75 + audioBands[shiftedIdx] * 0.25;
     const syllableProfile = 0.35 + 0.65 * Math.pow(0.5 + 0.5 * Math.sin(time * 0.90 + i * 0.47), 2);
     const syllable = speaking ? speakEnergy * (0.55 + 0.45 * Math.sin(time * 5.8 + i * 0.34)) * syllableProfile : 0;
-    const slowEddy = 0.0051 * Math.sin(time * 0.62 + i * 0.43) + 0.0038 * Math.sin(time * 0.91 + i * 0.81);
+    const slowEddy = 0.0074 * Math.sin(time * 0.62 + i * 0.43) + 0.0056 * Math.sin(time * 0.91 + i * 0.81);
     const shimmer = thinkEnergy * 0.0035 * Math.sin(time * 9.0 + i * 1.27);
-    const idle = slowEddy + 0.0026 * Math.sin(time * 1.7 + i * 0.17 + membraneWave[l] * 8.0) + shimmer;
+    const idle = slowEddy + 0.0040 * Math.sin(time * 1.7 + i * 0.17 + membraneWave[l] * 8.0) + shimmer;
     const lap = membraneWave[l] + membraneWave[r] - 2 * membraneWave[i];
     const curvature = (membraneWave[(i + 2) % PHYS_SEGMENTS] + membraneWave[(i + PHYS_SEGMENTS - 2) % PHYS_SEGMENTS] - 2 * membraneWave[i]) * 0.35;
     const source = membraneForce[i] + localAudio * (0.025 + drive * 0.070) + syllable * 0.010 + idle;
@@ -469,10 +541,18 @@ function frame(now){
   updateMembranePhysics(time, dt);
   agit += (Math.min(1, speakEnergy + micLevel * 1.6 + thinkEnergy * 0.4) - agit) * 0.18;
 
+  // smooth the magnetic cursor — eased follow + gentle fade so it feels soft, never jumpy
+  pointerTarget.str *= 0.97;
+  pointerSmX += (pointerTarget.x - pointerSmX) * 0.12;
+  pointerSmY += (pointerTarget.y - pointerSmY) * 0.12;
+  pointerSmStr += (pointerTarget.str - pointerSmStr) * 0.10;
+
   uniforms.uTime.value = time;
   uniforms.uAgit.value = agit;
   uniforms.uSpeakEnergy.value = speakEnergy;
   uniforms.uMicLevel.value = micLevel;
+  uniforms.uPointer.value.set(pointerSmX, pointerSmY);
+  uniforms.uPointerStr.value = pointerSmStr;
   uniforms.uAudio.value = audioBands;
   uniforms.uWave.value = membraneWave;
   uniforms.uFlux.value = membraneFlux;

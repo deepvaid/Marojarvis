@@ -306,6 +306,10 @@ function submit(){
 }
 form.addEventListener('submit', (e) => { e.preventDefault(); submit(); });
 input.addEventListener('input', () => { sendBtn.disabled = !input.value.trim(); });
+// suggestion chips reveal only while the input is focused
+input.addEventListener('focus', () => body.classList.add('input-focused'));
+input.addEventListener('blur', () => setTimeout(() => body.classList.remove('input-focused'), 150));
+chips.addEventListener('mousedown', (e) => e.preventDefault()); // keep input focused through a chip click
 chips.addEventListener('click', (e) => {
   const b = e.target.closest('[data-cmd]');
   if (b) handle(b.dataset.cmd);
@@ -393,5 +397,3 @@ window.MaropostAI = {
   },
   setSpokenReplies(on){ Orb.spokenEnabled = on; }
 };
-
-input.focus();
