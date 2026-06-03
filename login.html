@@ -18,7 +18,7 @@
   body{ background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif;
     -webkit-font-smoothing:antialiased; overflow:hidden; }
 
-  .wordmark{ position:fixed; top:26px; left:clamp(22px,4vw,48px); z-index:6; font-weight:800; font-size:24px; letter-spacing:0.01em; color:var(--ink); text-decoration:none; cursor:pointer; }
+  .wordmark{ position:fixed; top:27px; left:clamp(22px,4vw,48px); z-index:6; font-weight:800; font-size:22px; line-height:1; letter-spacing:0.01em; color:var(--ink); text-decoration:none; cursor:pointer; }
   .back{ position:fixed; top:30px; right:clamp(22px,4vw,48px); z-index:6; color:var(--dim); text-decoration:none; font-size:14px; font-weight:500; transition:color .18s; }
   .back:hover{ color:var(--ink); }
 
@@ -87,16 +87,10 @@
       <h1 id="title">Login</h1>
       <div class="sub hide" id="sub">Start your free trial — no card required.</div>
 
-      <input class="field" id="name" type="text" placeholder="Full name" autocomplete="name">
       <input class="field" id="email" type="email" placeholder="Email" autocomplete="email" required>
       <input class="field" id="password" type="password" placeholder="Password" autocomplete="current-password" required>
 
       <button class="primary" id="submit" type="submit">Login</button>
-
-      <div class="meta" id="meta">
-        <label class="remember"><input type="checkbox"> Remember me</label>
-        <a id="forgot">Forgot password?</a>
-      </div>
 
       <div class="divider"></div>
 
@@ -118,7 +112,6 @@
   const form = document.getElementById('authForm');
   const title = document.getElementById('title');
   const sub = document.getElementById('sub');
-  const nameField = document.getElementById('name');
   const submitBtn = document.getElementById('submit');
   const switchTxt = document.getElementById('switch');
   let signup = false;
@@ -128,8 +121,6 @@
     title.textContent = signup ? 'Create your account' : 'Login';
     submitBtn.textContent = signup ? 'Create account' : 'Login';
     sub.classList.toggle('hide', !signup);
-    nameField.classList.toggle('hide', !signup);
-    document.getElementById('meta').classList.toggle('hide', signup);
     switchTxt.innerHTML = signup
       ? 'Already have an account? <a id="toggle">Log in</a>'
       : 'New to Maropost? <a id="toggle">Create account</a>';

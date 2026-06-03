@@ -20,9 +20,9 @@
 
   /* nav */
   nav{ position:fixed; top:0; left:0; right:0; z-index:6; display:flex; align-items:center;
-    justify-content:space-between; padding:26px clamp(22px,4vw,56px); }
+    justify-content:space-between; padding:0 clamp(22px,4vw,48px); min-height:76px; }
   .nav-left{ display:flex; align-items:center; gap:clamp(22px,3vw,44px); }
-  .wordmark{ font-weight:800; font-size:22px; letter-spacing:0.01em; color:var(--ink); text-decoration:none; cursor:pointer; }
+  .wordmark{ font-weight:800; font-size:22px; line-height:1; letter-spacing:0.01em; color:var(--ink); text-decoration:none; cursor:pointer; }
   .nav-links{ display:flex; align-items:center; gap:clamp(16px,2vw,30px); }
   .nav-links a{ display:inline-flex; align-items:center; gap:5px; color:var(--ink); text-decoration:none;
     font-size:15px; font-weight:500; transition:color .18s; cursor:pointer; }
@@ -92,7 +92,7 @@
 
   <div class="orb-bg">
     <div class="stage">
-      <canvas id="orb"></canvas>
+      <canvas id="orb" data-opacity="1.55"></canvas>
 
     </div>
   </div>

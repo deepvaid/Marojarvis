@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 
 const canvas = document.getElementById('orb');
+const ORB_OPACITY = parseFloat(canvas && canvas.dataset.opacity) || 1; // per-page visibility via data-opacity
 
 const TAU = Math.PI * 2;
 const AUDIO_BANDS = 16;
@@ -109,6 +110,7 @@ const uniforms = {
   uAspect:{ value:1 },
   uRadius:{ value:0.64 },
   uDpr:{ value:1 },
+  uOpacity:{ value:ORB_OPACITY },
   uPointer:{ value:new THREE.Vector2(0, 0) },
   uPointerStr:{ value:0 },
   uAudio:{ value:audioBands },
@@ -279,6 +281,7 @@ const membraneMat = new THREE.ShaderMaterial({
   fragmentShader:`
     precision highp float;
     uniform float uTime;
+    uniform float uOpacity;
     varying float vAlpha;
     varying float vInk;
     varying float vSeed;
@@ -295,7 +298,7 @@ const membraneMat = new THREE.ShaderMaterial({
       vec3 ink=mix(vec3(0.34,0.37,0.41),vec3(0.03,0.035,0.04),vInk);
       float hueAmt=vEdge*0.18;
       vec3 col=mix(ink,ink*0.65+spectrum(vHueP)*0.45,hueAmt);
-      gl_FragColor=vec4(col,vAlpha*disc*grain);
+      gl_FragColor=vec4(col,vAlpha*disc*grain*uOpacity);
     }`,
   transparent:true,
   depthTest:false,
@@ -448,7 +451,7 @@ function updateAudioBands(time){
       let raw = 0.012 + 0.006 * Math.sin(time * 0.8 + b * 0.7);
       if (speaking){
         const syllable = Math.abs(Math.sin(time * 6.4 + b * 0.48)) * Math.abs(Math.sin(time * 2.9 + b * 1.17));
-        raw = Math.max(raw, speakEnergy * (0.20 + 0.80 * syllable));
+        raw = Math.max(raw, speakEnergy * (0.12 + 0.42 * syllable));
       }
       const k = raw > audioBands[b] ? 0.42 : 0.12;
       audioBands[b] += (raw - audioBands[b]) * k;
@@ -484,7 +487,7 @@ function updateMembranePhysics(time, dt){
       const sweepRaw = time * 0.055 + 0.17 * Math.sin(time * 0.37) + Math.random() * 0.12;
       const sweep = sweepRaw - Math.floor(sweepRaw);
       const center = Math.floor(sweep * PHYS_SEGMENTS);
-      const strength = (0.030 + drive * 0.155) * (speaking ? 1.55 : 1.0) * (thinking ? 0.7 : 1.0);
+      const strength = (0.030 + drive * 0.155) * (speaking ? 1.12 : 1.0) * (thinking ? 0.7 : 1.0);
       const spread = thinking ? (0.7 + Math.random() * 0.35) : (1.05 + drive * 1.35 + Math.random() * 0.45);
       addMembraneImpulse(center, strength, spread);
     }
@@ -511,7 +514,7 @@ function updateMembranePhysics(time, dt){
     const idle = slowEddy + 0.0040 * Math.sin(time * 1.7 + i * 0.17 + membraneWave[l] * 8.0) + shimmer;
     const lap = membraneWave[l] + membraneWave[r] - 2 * membraneWave[i];
     const curvature = (membraneWave[(i + 2) % PHYS_SEGMENTS] + membraneWave[(i + PHYS_SEGMENTS - 2) % PHYS_SEGMENTS] - 2 * membraneWave[i]) * 0.35;
-    const source = membraneForce[i] + localAudio * (0.025 + drive * 0.070) + syllable * 0.010 + idle;
+    const source = membraneForce[i] + localAudio * (0.025 + drive * 0.070) + syllable * 0.006 + idle;
     const accel = (lap + curvature) * stiffness - membraneWave[i] * tension - membraneVelocity[i] * damping + source * (24 + drive * 28);
     let vel = membraneVelocity[i] + accel * dt;
     let wave = membraneWave[i] + vel * dt;
@@ -532,7 +535,7 @@ function frame(now){
   const dt = lastFrameTime ? Math.min(0.033, Math.max(0.001, time - lastFrameTime)) : 1 / 60;
   lastFrameTime = time;
   if (speaking){
-    const tgt = 0.5 + 0.5 * Math.abs(Math.sin(now * 0.011) * Math.cos(now * 0.019));
+    const tgt = 0.26 + 0.26 * Math.abs(Math.sin(now * 0.011) * Math.cos(now * 0.019));
     speakEnergy += (tgt - speakEnergy) * 0.18;
   } else speakEnergy += (0 - speakEnergy) * 0.06;
   thinkEnergy += ((thinking ? 1 : 0) - thinkEnergy) * (thinking ? 0.10 : 0.08);

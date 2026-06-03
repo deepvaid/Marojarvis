@@ -38,10 +38,10 @@
   .topbar{
     position:fixed; top:0; left:0; right:0; z-index:6;
     display:flex; align-items:center; justify-content:space-between;
-    padding:22px 28px; pointer-events:none;
+    padding:0 clamp(22px,4vw,48px); min-height:76px; pointer-events:none;
   }
   .topbar > *{ pointer-events:auto; }
-  .wordmark{ font-weight:800; font-size:21px; letter-spacing:0.01em; color:var(--ink); user-select:none; text-decoration:none; cursor:pointer; }
+  .wordmark{ font-weight:800; font-size:22px; line-height:1; letter-spacing:0.01em; color:var(--ink); user-select:none; text-decoration:none; cursor:pointer; }
   .top-right{ display:flex; align-items:center; gap:10px; }
   .ghostbtn{
     display:inline-flex; align-items:center; gap:7px; cursor:pointer;
@@ -75,10 +75,12 @@
   /* ---- conversation thread (active) ---- */
   .thread{
     width:min(620px,92vw); flex:0 1 auto; min-height:0; max-height:52vh; overflow-y:auto;
-    display:flex; flex-direction:column; gap:24px; padding:10px 6px;
+    display:flex; flex-direction:column; gap:24px; padding:18px 20px;
     scrollbar-width:thin; scrollbar-color:var(--line) transparent;
-    -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 26px, #000 calc(100% - 12px), transparent 100%);
-            mask-image:linear-gradient(to bottom, transparent 0, #000 26px, #000 calc(100% - 12px), transparent 100%);
+    background:rgba(255,255,255,0.6);
+    -webkit-backdrop-filter:blur(14px) saturate(130%); backdrop-filter:blur(14px) saturate(130%);
+    border:1px solid rgba(255,255,255,0.6); border-radius:18px;
+    box-shadow:0 1px 2px rgba(24,27,33,.04), 0 24px 60px -32px rgba(24,27,33,.28);
   }
   .thread:not(.on){ display:none; }
   .thread::-webkit-scrollbar{ width:7px; }
@@ -195,8 +197,6 @@
   .toast.show{ opacity:1; transform:translate(-50%,0); }
 
   @media (max-width:560px){
-    .topbar{ padding:16px 18px; }
-    .wordmark{ font-size:18px; }
     .ghostbtn{ padding:8px 12px; font-size:12px; }
     .turn .msg{ font-size:15px; }
     .row .k{ flex-basis:96px; }
@@ -240,6 +240,8 @@
         <div class="voice-label" id="voiceLabel"></div>
       </div>
 
+      <div class="statepill"><span class="pip"></span><span id="statetext">idle</span></div>
+
       <form class="inputrow" id="form" autocomplete="off">
         <input id="input" type="text" placeholder="What do you want to work on?" aria-label="Message Maropost DaVinci">
         <button type="button" class="iconbtn mic" id="mic" aria-label="Speak" title="Speak">
@@ -249,8 +251,6 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
         </button>
       </form>
-
-      <div class="statepill"><span class="pip"></span><span id="statetext">idle</span></div>
 
       <div class="chips" id="chips">
         <button class="chip-s" data-cmd="Run a campaign">Run a campaign</button>
