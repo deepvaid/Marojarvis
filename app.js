@@ -322,7 +322,7 @@ newChat.addEventListener('click', () => {
   try { window.speechSynthesis.cancel(); } catch(e){}
   input.focus();
 });
-classicUI.addEventListener('click', () => toast('Classic dashboard — available from the workspace switcher.'));
+classicUI.addEventListener('click', () => window.open('https://mb-option2.vercel.app/accounts/2000290/dashboard', '_blank', 'noopener'));
 
 /* ---------- real speech-to-text ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
