@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA — AI Entity</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#ffffff; --ink:#2b2f36; --dim:#9aa3ad; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; }
+  body { background:var(--bg); color:var(--ink); font-family:'IBM Plex Mono',monospace; min-height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; position:relative; padding:24px; }
+  body::before { content:""; position:fixed; inset:0; pointer-events:none;
+    background:radial-gradient(1200px 800px at 50% 46%, transparent 62%, rgba(43,47,54,0.03) 100%); }
+  .hud-top { position:fixed; top:22px; left:0; right:0; display:flex; justify-content:space-between;
+    padding:0 26px; font-size:11px; letter-spacing:0.28em; color:var(--dim); text-transform:uppercase; pointer-events:none; }
+  .hud-top .dot { color:var(--ink); animation:blink 2.6s infinite; }
+  @keyframes blink { 0%,70%{opacity:1} 85%{opacity:0.2} 100%{opacity:1} }
+  .stage { position:relative; width:min(84vw,640px); height:min(84vw,640px); display:grid; place-items:center; }
+  #orb { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .core { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:min(42%,300px); text-align:center; pointer-events:auto; z-index:2; }
+  .core-label { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.22em; text-transform:uppercase; color:rgba(43,47,54,0.58); margin-bottom:10px; text-shadow:0 1px 14px rgba(255,255,255,0.78); }
+  .core-input { width:100%; background:transparent; border:0; border-bottom:1px solid rgba(43,47,54,0.28); outline:0;
+    text-align:center; font-family:'Chakra Petch',sans-serif; font-size:clamp(13px,2vw,16px); color:rgba(30,34,39,0.86); padding:6px 2px; caret-color:#2b2f36; }
+  .core-input::placeholder { color:rgba(43,47,54,0.46); font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.06em; }
+  .core-input:focus { border-bottom-color:rgba(43,47,54,0.52); }
+  .caption { margin-top:24px; text-align:center; font-family:'Chakra Petch',sans-serif; }
+  .caption h1 { font-size:clamp(20px,3.4vw,28px); font-weight:700; letter-spacing:0.4em; color:var(--ink); margin-left:0.4em; }
+  .caption .state { margin-top:6px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.32em; color:var(--dim); text-transform:uppercase; min-height:14px; }
+  .console { margin-top:24px; width:min(94vw,640px); display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .field { flex:1 1 320px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid rgba(43,47,54,0.18); border-radius:2px; padding:0 14px; }
+  .field span { color:var(--ink); font-size:13px; }
+  .field input { flex:1; background:transparent; border:0; outline:0; color:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:14px; padding:14px 0; }
+  .field input::placeholder { color:var(--dim); }
+  button { font-family:'Chakra Petch',sans-serif; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; font-size:12px;
+    color:#fff; background:#3c424b; border:0; border-radius:2px; padding:14px 22px; cursor:pointer; transition:transform .12s,box-shadow .2s,background .2s; }
+  button:hover { background:#21252b; box-shadow:0 6px 22px rgba(43,47,54,0.22); transform:translateY(-1px); }
+  button:active { transform:translateY(0); }
+  button.ghost { background:#fff; color:#3c424b; border:1px solid rgba(43,47,54,0.25); }
+  button.ghost:hover { background:#f2f3f5; }
+  button.ghost.live { color:#fff; background:#3c424b; }
+  select { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink); background:#fff;
+    border:1px solid rgba(43,47,54,0.18); border-radius:2px; padding:13px 12px; max-width:230px; cursor:pointer; }
+  .hint { margin-top:16px; font-size:11px; color:var(--dim); letter-spacing:0.14em; text-align:center; max-width:560px; }
+  .vname { font-size:11px; color:var(--dim); letter-spacing:0.12em; margin-top:8px; }
+  .panel { margin-top:18px; width:min(94vw,640px); border:1px solid rgba(43,47,54,0.14); border-radius:3px; padding:14px; background:#fcfcfd; }
+  .prow { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+  .prow:last-child { margin-bottom:0; }
+  .prow label { font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--dim); min-width:96px; }
+  .panel input { flex:1 1 240px; min-width:0; background:#fff; border:1px solid rgba(43,47,54,0.18); border-radius:2px;
+    padding:11px 12px; font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--ink); outline:0; }
+  .panel select { flex:1 1 200px; }
+  button.small { padding:11px 16px; font-size:11px; }
+  .elbox { margin-top:10px; padding-top:10px; border-top:1px dashed rgba(43,47,54,0.14); }
+  .elnote { font-size:10px; color:var(--dim); letter-spacing:0.1em; margin-top:4px; }
+  @media (max-width:520px) {
+    .core { width:52%; }
+    .core-label { font-size:9px; letter-spacing:0.14em; line-height:1.45; }
+    .core-input { font-size:12px; }
+    .core-input::placeholder { font-size:9.5px; letter-spacing:0.02em; }
+  }
+</style>
+</head>
+<body>
+  <div class="hud-top"><span><span class="dot">●</span> SYS / ONLINE</span><span id="clock">--:--:--</span></div>
+  <div class="stage">
+    <canvas id="orb"></canvas>
+    <div class="core">
+      <div class="core-label">What would you like to do today?</div>
+      <input id="text" class="core-input" type="text" placeholder="type here, then press Enter" autocomplete="off">
+    </div>
+  </div>
+  <div class="caption"><h1>ARIA</h1><div class="state" id="state">standby</div></div>
+  <div class="console">
+    <select id="voice" title="Voice"><option>loading voices…</option></select>
+    <button id="speak">Speak</button>
+    <button id="mic" class="ghost">Listen</button>
+  </div>
+  <div class="vname" id="vname">voice: detecting…</div>
+  <div class="hint">Type your intent in the centre, then press Enter or Speak · Listen reacts to your mic</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+const canvas=document.getElementById('orb');
+const stage=document.querySelector('.stage');
+const stateEl=document.getElementById('state'), clockEl=document.getElementById('clock'), vnameEl=document.getElementById('vname');
+const TAU=Math.PI*2;
+
+let speaking=false, listening=false, speakEnergy=0, micLevel=0, agit=0;
+let analyser=null, freqData=null, audioCtx=null, micStream=null;
+let pointerStrength=0, pointerWake=0, pointerVelocity=0, pointerTheta=0, pointerRadius=0, pointerLastT=0, pointerActive=false;
+const pointerTarget=new THREE.Vector2(0,0);
+const pointerSmooth=new THREE.Vector2(0,0);
+const pointerDelta=new THREE.Vector2(0,0);
+const AUDIO_BANDS=32;
+const audioBands=new Float32Array(AUDIO_BANDS);
+const bandTargets=new Float32Array(AUDIO_BANDS);
+let bassLevel=0, midLevel=0, highLevel=0;
+function setState(t){ stateEl.textContent=t; }
+
+const renderer=new THREE.WebGLRenderer({canvas, antialias:true, alpha:true, powerPreference:'high-performance'});
+renderer.setClearColor(0xffffff,0);
+const scene=new THREE.Scene();
+const camera=new THREE.OrthographicCamera(-1,1,1,-1,0,4);
+camera.position.z=1;
+
+const uniforms={
+  uTime:{value:0},
+  uActivity:{value:0},
+  uSpeakEnergy:{value:0},
+  uMicLevel:{value:0},
+  uBands:{value:audioBands},
+  uBass:{value:0},
+  uMid:{value:0},
+  uHigh:{value:0},
+  uAspect:{value:1},
+  uDpr:{value:1},
+  uPointer:{value:new THREE.Vector2(0,0)},
+  uPointerDelta:{value:new THREE.Vector2(0,0)},
+  uPointerStrength:{value:0},
+  uPointerVelocity:{value:0},
+  uPointerTheta:{value:0},
+  uPointerRadius:{value:0},
+  uPointerWake:{value:0}
+};
+
+const eclipseMat=new THREE.ShaderMaterial({
+  uniforms,
+  vertexShader:`
+    varying vec2 vUv;
+    void main(){
+      vUv=uv;
+      gl_Position=vec4(position.xy,0.0,1.0);
+    }`,
+  fragmentShader:`
+    precision highp float;
+    varying vec2 vUv;
+    uniform float uTime;
+    uniform float uActivity;
+    uniform float uSpeakEnergy;
+    uniform float uMicLevel;
+    uniform float uBands[32];
+    uniform float uBass;
+    uniform float uMid;
+    uniform float uHigh;
+    uniform float uAspect;
+    uniform vec2 uPointer;
+    uniform vec2 uPointerDelta;
+    uniform float uPointerStrength;
+    uniform float uPointerVelocity;
+    uniform float uPointerTheta;
+    uniform float uPointerRadius;
+    uniform float uPointerWake;
+    const float TAU=6.28318530718;
+
+    float hash21(vec2 p){
+      p=fract(p*vec2(123.34,456.21));
+      p+=dot(p,p+45.32);
+      return fract(p.x*p.y);
+    }
+    float noise(vec2 p){
+      vec2 i=floor(p);
+      vec2 f=fract(p);
+      vec2 u=f*f*(3.0-2.0*f);
+      return mix(mix(hash21(i),hash21(i+vec2(1.0,0.0)),u.x),
+                 mix(hash21(i+vec2(0.0,1.0)),hash21(i+vec2(1.0,1.0)),u.x),u.y);
+    }
+    float fbm(vec2 p){
+      float v=0.0;
+      float a=0.5;
+      mat2 m=mat2(0.80,-0.60,0.60,0.80);
+      for(int i=0;i<5;i++){
+        v+=a*noise(p);
+        p=m*p*2.03+0.17;
+        a*=0.5;
+      }
+      return v;
+    }
+    vec2 curlish(vec2 p){
+      float e=0.055;
+      float n1=fbm(p+vec2(0.0,e));
+      float n2=fbm(p-vec2(0.0,e));
+      float n3=fbm(p+vec2(e,0.0));
+      float n4=fbm(p-vec2(e,0.0));
+      return vec2(n1-n2,n4-n3)/e;
+    }
+    float ridged(vec2 p){
+      float v=0.0;
+      float a=0.55;
+      for(int i=0;i<4;i++){
+        float n=abs(noise(p)*2.0-1.0);
+        v+=a*(1.0-n);
+        p=p*2.12+vec2(3.1,-1.7);
+        a*=0.52;
+      }
+      return v;
+    }
+    float angular(vec2 p){ return atan(p.y,p.x); }
+    float angleDistance(float a,float b){
+      return abs(mod(a-b+3.14159265359,TAU)-3.14159265359);
+    }
+    float sampleBands(float x){
+      float v=0.0;
+      float wsum=0.0;
+      for(int i=0;i<32;i++){
+        float fi=(float(i)+0.5)/32.0;
+        float d=abs(x-fi);
+        d=min(d,1.0-d);
+        float w=exp(-d*d*1150.0);
+        v+=uBands[i]*w;
+        wsum+=w;
+      }
+      return v/max(wsum,0.0001);
+    }
+
+    void main(){
+      float t=uTime;
+      vec2 p=vUv*2.0-1.0;
+      if(uAspect>1.0){ p.x*=uAspect; } else { p.y/=uAspect; }
+      float r=length(p);
+      float a=angular(p);
+      vec2 dir=vec2(cos(a),sin(a));
+      float aBase=a+t*0.030;
+      float aWave=aBase+(fbm(vec2(cos(aBase*2.0),sin(aBase*2.0))*1.10+vec2(t*0.022,-t*0.016))-0.5)*0.045;
+      vec2 waveDir=vec2(cos(aWave),sin(aWave));
+      float xWave=fract(aWave/TAU+0.5);
+      float band=sampleBands(xWave);
+      float bandNext=sampleBands(fract(xWave+0.035));
+      float bandSlope=abs(band-bandNext);
+      float activity=clamp(uActivity+band*0.7+uMicLevel*0.25,0.0,1.0);
+
+      vec2 curl=curlish(waveDir*2.2+vec2(t*0.032,-t*0.024));
+      float breath=0.012*sin(t*0.38)+0.006*sin(t*0.17+1.4)+uBass*0.034+uSpeakEnergy*0.010;
+      float baseRadius=0.602+breath;
+      float angularDrift=(fbm(vec2(cos(aWave*3.0),sin(aWave*3.0))*1.25+vec2(t*0.014,t*0.050))-0.5)*0.011;
+      angularDrift+=(fbm(vec2(cos(aWave*8.0),sin(aWave*8.0))*1.20+vec2(2.4,-t*0.032))-0.5)*0.006;
+      angularDrift+=curl.x*0.003;
+
+      float zoneA=smoothstep(0.34,0.82,fbm(vec2(cos(aWave*5.4),sin(aWave*5.4))*1.30+vec2(1.2+t*0.018,t*0.014)));
+      float zoneB=smoothstep(0.50,0.92,ridged(vec2(cos(aWave*7.2),sin(aWave*7.2))*1.45+vec2(0.5,t*0.036)));
+      float selected=clamp(zoneA*0.75+zoneB*0.45,0.0,1.0);
+      selected=pow(selected,1.85);
+
+      float mids=ridged(vec2(cos(aWave*18.0),sin(aWave*18.0))*1.32+vec2(t*0.20,band*0.75));
+      float folds=fbm(vec2(cos(aWave*29.0),sin(aWave*29.0))*1.16+vec2(t*0.16,uMid*0.6));
+      float highs=ridged(vec2(cos(aWave*64.0),sin(aWave*64.0))*1.05+vec2(t*0.48,band*1.35));
+      float idleWave=(0.0032+selected*(0.0105+0.0090*mids)+smoothstep(0.64,0.94,highs)*selected*0.0060);
+      float liveWave=selected*(uBass*0.026+uMid*mids*0.082+band*0.090+uHigh*highs*0.078+bandSlope*0.056);
+      liveWave*=smoothstep(0.02,0.72,activity);
+      float spectrum=clamp(idleWave+liveWave,0.0,0.082);
+
+      float cursorAngle=angleDistance(a,uPointerTheta);
+      float pointerLife=clamp(max(uPointerStrength*0.92,uPointerWake*0.72),0.0,1.0);
+      float rimProximity=(1.0-smoothstep(0.12,0.44,abs(uPointerRadius-0.62)))*pointerLife;
+      vec2 pointerDir=vec2(cos(uPointerTheta),sin(uPointerTheta));
+      vec2 pointerTang=vec2(-pointerDir.y,pointerDir.x);
+      vec2 flowDir=uPointerDelta/(length(uPointerDelta)+0.0001);
+      float trailSide=mix(-1.0,1.0,step(0.0,dot(flowDir,pointerTang)));
+      float localArc=exp(-(cursorAngle*cursorAngle)/(0.028+uPointerVelocity*0.022+uPointerWake*0.014));
+      float trailAngle=uPointerTheta-trailSide*(0.10+uPointerVelocity*0.16);
+      float trailArc=exp(-pow(angleDistance(a,trailAngle),2.0)/(0.052+uPointerVelocity*0.036))*uPointerVelocity;
+      float ripple=max(0.0,sin(cursorAngle*38.0-t*5.6))*exp(-cursorAngle*5.0)*uPointerWake;
+      float pointerArc=(localArc*0.92+trailArc*0.66+ripple*0.24)*rimProximity;
+
+      float innerRadius=baseRadius-0.007+angularDrift*0.14+pointerArc*0.002;
+      float outerRadius=baseRadius+0.004+angularDrift*0.55+spectrum+pointerArc*0.082;
+      outerRadius=max(outerRadius,innerRadius+0.012);
+
+      float inPaper=1.0-smoothstep(innerRadius-0.0015,innerRadius+0.006,r);
+      float ringStart=smoothstep(innerRadius-0.0025,innerRadius+0.004,r);
+      float ringEnd=1.0-smoothstep(outerRadius-0.003,outerRadius+0.007,r);
+      float inkArea=ringStart*ringEnd;
+
+      vec2 smokeP=p*5.2+curl*0.16+waveDir*0.10+vec2(t*0.014,-t*0.018);
+      float smoke=fbm(smokeP);
+      smoke+=0.50*fbm(p*10.0+vec2(-t*0.024,t*0.018));
+      smoke/=1.50;
+      float grain=hash21(floor(vUv*vec2(980.0,720.0))+floor(t*8.0))*0.08;
+
+      float innerLine=exp(-abs(r-innerRadius)*175.0)*(0.72+0.36*smoke);
+      float outerSoft=exp(-max(r-outerRadius,0.0)*42.0)*smoothstep(outerRadius-0.010,outerRadius+0.006,r);
+      float charcoalWash=outerSoft*(0.020+0.050*smoke+0.025*folds)*smoothstep(0.0,0.045,outerRadius-innerRadius);
+      float darkRim=inkArea*(0.58+0.42*smoke+0.16*mids*(0.35+activity*0.65)+0.10*grain);
+      darkRim+=innerLine*0.28;
+      darkRim+=charcoalWash;
+
+      float outside=max(r-outerRadius,0.0);
+      float flareCluster=smoothstep(0.46,0.84,fbm(vec2(cos(aWave*3.8+t*0.09),sin(aWave*3.8+t*0.09))*1.34+vec2(t*0.030,-t*0.018)));
+      flareCluster*=0.28+0.72*selected;
+      float flareTexture=ridged(vec2(cos(aWave*21.0-t*0.16),sin(aWave*21.0-t*0.16))*1.08+vec2(t*0.15,smoke));
+      float flareReach=0.017+0.028*flareCluster*(0.35+0.65*flareTexture);
+      float fluidFlare=smoothstep(outerRadius-0.004,outerRadius+0.005,r);
+      fluidFlare*=exp(-outside*34.0)*(1.0-smoothstep(flareReach*0.45,flareReach,outside));
+      fluidFlare*=flareCluster*(0.14+0.26*flareTexture)*(0.78+0.22*activity);
+      darkRim+=fluidFlare*1.05;
+
+      float cursorFlare=smoothstep(outerRadius-0.006,outerRadius+0.012,r)*exp(-outside*22.0);
+      cursorFlare*=pointerArc*(0.28+0.34*smoke+0.18*flareTexture);
+      darkRim+=cursorFlare*1.25;
+
+      float idleNeedle=smoothstep(0.66,0.96,highs)*selected*(0.052+0.090*activity);
+      float thinSpikes=idleNeedle+smoothstep(0.74,0.97,highs)*(uHigh*0.72+band*0.48+uSpeakEnergy*0.34)*selected;
+      float spikeLine=exp(-abs(r-(outerRadius+0.003+thinSpikes*0.020))*86.0)*thinSpikes;
+      float splinterLine=exp(-abs(r-(outerRadius+0.022+thinSpikes*0.052))*45.0)*thinSpikes*smoothstep(0.58,0.92,ridged(vec2(cos(aWave*96.0),sin(aWave*96.0))*0.96+vec2(r*8.0,-t*0.34)));
+      darkRim+=spikeLine*0.34+splinterLine*0.18;
+
+      float paperShadow=inPaper*exp(-max(innerRadius-r,0.0)*42.0)*(0.012+0.014*smoke);
+      vec3 col=vec3(1.0);
+      col=mix(col,vec3(0.93),paperShadow);
+
+      vec3 inkCol=mix(vec3(0.58),vec3(0.020),clamp(darkRim*1.12,0.0,1.0));
+      col=mix(col,inkCol,clamp(darkRim,0.0,0.94));
+
+      float dust=exp(-max(r-outerRadius,0.0)*18.0)*smoothstep(outerRadius-0.006,outerRadius+0.026,r);
+      dust*=smoothstep(0.50,0.94,fbm(vec2(cos(aWave*12.0),sin(aWave*12.0))*1.18+vec2(r*5.0,t*0.12)));
+      col=mix(col,vec3(0.78),dust*(0.018+0.055*activity));
+
+      gl_FragColor=vec4(clamp(col,0.0,1.0),1.0);
+    }`,
+  depthTest:false,
+  depthWrite:false
+});
+const eclipse=new THREE.Mesh(new THREE.PlaneGeometry(2,2),eclipseMat);
+eclipse.renderOrder=0;
+scene.add(eclipse);
+
+const PARTICLES=12000;
+const pPositions=new Float32Array(PARTICLES*3);
+const pAngles=new Float32Array(PARTICLES);
+const pSeeds=new Float32Array(PARTICLES);
+const pOffsets=new Float32Array(PARTICLES);
+const pSpeeds=new Float32Array(PARTICLES);
+const pKinds=new Float32Array(PARTICLES);
+for(let i=0;i<PARTICLES;i++){
+  const kind=Math.random();
+  pAngles[i]=Math.random()*TAU;
+  pSeeds[i]=Math.random()*1000;
+  pOffsets[i]=kind<0.82 ? (Math.random()-0.35)*0.026 : Math.pow(Math.random(),1.9)*0.105;
+  pSpeeds[i]=0.35+Math.random()*1.65;
+  pKinds[i]=kind;
+}
+const particleGeo=new THREE.BufferGeometry();
+particleGeo.setAttribute('position',new THREE.BufferAttribute(pPositions,3));
+particleGeo.setAttribute('aAngle',new THREE.BufferAttribute(pAngles,1));
+particleGeo.setAttribute('aSeed',new THREE.BufferAttribute(pSeeds,1));
+particleGeo.setAttribute('aOffset',new THREE.BufferAttribute(pOffsets,1));
+particleGeo.setAttribute('aSpeed',new THREE.BufferAttribute(pSpeeds,1));
+particleGeo.setAttribute('aKind',new THREE.BufferAttribute(pKinds,1));
+
+const particleMat=new THREE.ShaderMaterial({
+  uniforms,
+  vertexShader:`
+    precision highp float;
+    attribute float aAngle;
+    attribute float aSeed;
+    attribute float aOffset;
+    attribute float aSpeed;
+    attribute float aKind;
+    uniform float uTime;
+    uniform float uActivity;
+    uniform float uBands[32];
+    uniform float uBass;
+    uniform float uMid;
+    uniform float uHigh;
+    uniform float uAspect;
+    uniform float uDpr;
+    uniform vec2 uPointer;
+    uniform vec2 uPointerDelta;
+    uniform float uPointerStrength;
+    uniform float uPointerVelocity;
+    uniform float uPointerTheta;
+    uniform float uPointerRadius;
+    uniform float uPointerWake;
+    varying float vAlpha;
+    varying float vSeed;
+    varying float vInk;
+    const float TAU=6.28318530718;
+
+    float hash(float n){ return fract(sin(n)*43758.5453123); }
+    float noise(vec2 p){
+      vec2 i=floor(p);
+      vec2 f=fract(p);
+      vec2 u=f*f*(3.0-2.0*f);
+      float a=hash(dot(i,vec2(127.1,311.7)));
+      float b=hash(dot(i+vec2(1.0,0.0),vec2(127.1,311.7)));
+      float c=hash(dot(i+vec2(0.0,1.0),vec2(127.1,311.7)));
+      float d=hash(dot(i+vec2(1.0,1.0),vec2(127.1,311.7)));
+      return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);
+    }
+    float fbm(vec2 p){
+      float v=0.0;
+      float a=0.5;
+      for(int i=0;i<4;i++){
+        v+=a*noise(p);
+        p=p*2.08+vec2(1.7,-2.4);
+        a*=0.52;
+      }
+      return v;
+    }
+    float ridged(vec2 p){
+      float v=0.0;
+      float a=0.55;
+      for(int i=0;i<3;i++){
+        float n=abs(noise(p)*2.0-1.0);
+        v+=a*(1.0-n);
+        p=p*2.18+vec2(4.1,1.3);
+        a*=0.55;
+      }
+      return v;
+    }
+    float angleDistance(float a,float b){
+      return abs(mod(a-b+3.14159265359,TAU)-3.14159265359);
+    }
+    float sampleBands(float x){
+      float v=0.0;
+      float wsum=0.0;
+      for(int i=0;i<32;i++){
+        float fi=(float(i)+0.5)/32.0;
+        float d=abs(x-fi);
+        d=min(d,1.0-d);
+        float w=exp(-d*d*900.0);
+        v+=uBands[i]*w;
+        wsum+=w;
+      }
+      return v/max(wsum,0.0001);
+    }
+
+    void main(){
+      float t=uTime;
+      float flow=t*(0.024+aSpeed*0.003);
+      float angle=aAngle+flow+0.030*(noise(vec2(aSeed,t*0.05))-0.5);
+      float x=fract(angle/TAU+0.5);
+      float band=sampleBands(x);
+      vec2 radial=vec2(cos(angle),sin(angle));
+      float breath=0.012*sin(t*0.38)+0.006*sin(t*0.17+1.4)+uBass*0.034;
+      float curl=noise(radial*4.0+vec2(t*0.08,-t*0.055)+aSeed*0.01)-0.5;
+      float cursorAngle=angleDistance(angle,uPointerTheta);
+      float pointerLife=clamp(max(uPointerStrength*0.90,uPointerWake*0.70),0.0,1.0);
+      float rimProximity=(1.0-smoothstep(0.12,0.45,abs(uPointerRadius-0.62)))*pointerLife;
+      vec2 pointerDir=vec2(cos(uPointerTheta),sin(uPointerTheta));
+      vec2 pointerTang=vec2(-pointerDir.y,pointerDir.x);
+      vec2 flowDir=uPointerDelta/(length(uPointerDelta)+0.0001);
+      float trailSide=mix(-1.0,1.0,step(0.0,dot(flowDir,pointerTang)));
+      float localArc=exp(-(cursorAngle*cursorAngle)/(0.044+uPointerVelocity*0.026));
+      float trailArc=exp(-pow(angleDistance(angle,uPointerTheta-trailSide*(0.12+uPointerVelocity*0.15)),2.0)/(0.072+uPointerVelocity*0.038))*uPointerVelocity;
+      float pointerArc=(localArc*0.86+trailArc*0.62)*rimProximity;
+      float escape=smoothstep(0.74,1.0,aKind);
+      float selected=smoothstep(0.36,0.84,fbm(vec2(cos(angle*5.5),sin(angle*5.5))*1.24+vec2(1.2+t*0.02,t*0.014)));
+      selected*=0.45+0.55*smoothstep(0.48,0.90,ridged(vec2(cos(angle*7.0),sin(angle*7.0))*1.36+vec2(0.4,t*0.036)));
+      float ridge=ridged(vec2(cos(angle*20.0),sin(angle*20.0))*1.20+vec2(t*0.20,band));
+      float spike=ridged(vec2(cos(angle*72.0),sin(angle*72.0))*1.00+vec2(t*0.48,aSeed*0.01));
+      float activity=clamp(uActivity+band*0.8,0.0,1.0);
+      float idleDust=selected*(0.0030+ridge*0.0045+spike*0.0025);
+      float wave=idleDust+selected*(band*0.070+uMid*ridge*0.052+uHigh*spike*0.050+uBass*0.018)*(0.36+activity*0.50);
+      float escaped=escape*fract(t*(0.026+aSpeed*0.020)+hash(aSeed))*0.048*(0.35+band+uHigh);
+      float radius=0.606+breath+aOffset+wave+escaped+curl*(0.008+escape*0.015)+pointerArc*0.078;
+      radius=max(radius,0.590);
+
+      vec2 tang=vec2(-radial.y,radial.x);
+      vec2 pos=radial*radius+tang*(curl*(0.008+escape*0.018)+pointerArc*trailSide*0.058);
+      if(uAspect>1.0){ pos.x/=uAspect; } else { pos.y*=uAspect; }
+
+      gl_Position=vec4(pos,0.0,1.0);
+      float size=mix(0.55,1.85,escape)*uDpr*(0.85+activity*0.32+pointerArc*1.15+band*0.22);
+      gl_PointSize=size;
+
+      float nearRim=1.0-smoothstep(0.700,0.810,radius);
+      float activeAlpha=0.42+activity*0.52+selected*band*0.65+pointerArc*1.95;
+      vAlpha=(0.018+escape*0.050+selected*0.026)*activeAlpha*nearRim;
+      vSeed=aSeed;
+      vInk=clamp(0.30+escape*0.22+band*0.42+selected*0.18,0.0,1.0);
+    }`,
+  fragmentShader:`
+    precision highp float;
+    uniform float uTime;
+    varying float vAlpha;
+    varying float vSeed;
+    varying float vInk;
+    float hash(float n){ return fract(sin(n)*43758.5453123); }
+    void main(){
+      vec2 p=gl_PointCoord-0.5;
+      float d=length(p);
+      float disc=1.0-smoothstep(0.02,0.50,d);
+      float grain=0.78+0.22*hash(vSeed+floor(uTime*10.0));
+      vec3 ink=mix(vec3(0.62),vec3(0.035),vInk);
+      gl_FragColor=vec4(ink,vAlpha*disc*grain);
+    }`,
+  transparent:true,
+  depthTest:false,
+  depthWrite:false,
+  blending:THREE.NormalBlending
+});
+const particles=new THREE.Points(particleGeo,particleMat);
+particles.renderOrder=1;
+scene.add(particles);
+
+function resize(){
+  const r=canvas.getBoundingClientRect();
+  const w=Math.max(1,r.width), h=Math.max(1,r.height);
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  renderer.setPixelRatio(dpr);
+  renderer.setSize(w,h,false);
+  uniforms.uAspect.value=w/h;
+  uniforms.uDpr.value=dpr;
+}
+window.addEventListener('resize',resize);
+
+function updatePointer(e){
+  const rect=canvas.getBoundingClientRect();
+  const x=((e.clientX-rect.left)/rect.width)*2-1;
+  const y=-(((e.clientY-rect.top)/rect.height)*2-1);
+  const now=performance.now();
+  const dt=pointerLastT?Math.max(16,now-pointerLastT):16;
+  const dx=pointerLastT?x-pointerTarget.x:0;
+  const dy=pointerLastT?y-pointerTarget.y:0;
+  const speed=Math.hypot(dx,dy)/(dt/1000);
+  pointerTarget.set(x,y);
+  pointerDelta.set(dx/(dt/1000),dy/(dt/1000));
+  pointerVelocity=Math.min(1,Math.max(pointerVelocity,speed*0.12));
+  pointerWake=Math.min(1,Math.max(pointerWake,0.22+speed*0.10));
+  pointerStrength=Math.min(1,Math.max(pointerStrength,0.16+speed*0.10));
+  pointerActive=true;
+  pointerLastT=now;
+}
+stage.addEventListener('pointermove',updatePointer,{passive:true});
+stage.addEventListener('pointerenter',updatePointer,{passive:true});
+stage.addEventListener('pointerleave',()=>{ pointerActive=false; pointerWake=Math.max(pointerWake,0.36); },{passive:true});
+
+// ---- voice: prefer warm natural voices, with a picker ----
+let chosenVoice=null, voices=[];
+const voiceSel=document.getElementById('voice');
+function rankVoice(v){
+  let s=0;
+  if(/online \(natural\)|natural|neural/i.test(v.name)) s+=35;
+  if(/enhanced|premium/i.test(v.name)) s+=20;
+  if(/samantha|sonia|libby|maisie|jenny|aria|ava|emma|serena|zira|hazel|kate/i.test(v.name)) s+=14;
+  if(/google uk english female|google us english female|microsoft jenny|microsoft aria/i.test(v.name)) s+=14;
+  if(/female/i.test(v.name)) s+=6;
+  if(/en[-_]GB|en[-_]US/i.test(v.lang)) s+=6;
+  if(/^en/i.test(v.lang)) s+=3;
+  if(/ryan|thomas|arthur|george|daniel|oliver|alfie/i.test(v.name)) s-=8;
+  if(/\bmale\b/i.test(v.name)) s-=5;
+  return s;
+}
+function refreshVoices(){
+  voices=window.speechSynthesis?window.speechSynthesis.getVoices():[];
+  if(!voices.length) return;
+  voiceSel.innerHTML='';
+  voices.forEach((v,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=`${v.name} (${v.lang})`; voiceSel.appendChild(o); });
+  let best=0,bs=-1e9; voices.forEach((v,i)=>{const r=rankVoice(v); if(r>bs){bs=r;best=i;}});
+  voiceSel.value=best; chosenVoice=voices[best];
+  const natural=/online \(natural\)|natural|neural|enhanced|premium/i.test(chosenVoice.name);
+  vnameEl.textContent=`voice: ${chosenVoice.name} (${chosenVoice.lang})${natural?' · natural':' · basic — try Edge for natural voices'}`;
+}
+if(voiceSel) voiceSel.addEventListener('change',()=>{ chosenVoice=voices[parseInt(voiceSel.value,10)]; vnameEl.textContent=`voice: ${chosenVoice.name} (${chosenVoice.lang})`; });
+if('speechSynthesis' in window){ refreshVoices(); window.speechSynthesis.onvoiceschanged=refreshVoices; }
+
+// ---- voice (built-in browser speech) ----
+const speakBtn=document.getElementById('speak'), textInput=document.getElementById('text');
+let speechVisualTimer=null, speechVisualStarted=0;
+function prepareVoiceScript(rawText,state='speaking'){
+  const clean=rawText.trim();
+  const stateLines={
+    idle:"Hey Deepak... I'm here. What would you like to work on?",
+    listening:"I'm listening.",
+    thinking:"Hmm... give me a second.",
+    success:"Done... I've got that ready.",
+    error:"Something didn't work there... let me try another way.",
+    speaking:"Okay... here's what I found."
+  };
+  if(!clean) return stateLines[state] || stateLines.speaking;
+  const lines=[`Got it... I'll help you with ${clean}.`,
+               `Okay... give me a second. I'll think through ${clean}.`,
+               `Nice... I've got the direction. Let's work on ${clean}.`,
+               `Understood... I'll shape this around ${clean}.`,
+               `Hmm... let me look at ${clean} properly.`];
+  return lines[(Math.random()*lines.length)|0];
+}
+function compose(t){
+  return prepareVoiceScript(t,'speaking');
+}
+
+function beginSpeechVisual(ms){
+  if(speechVisualTimer) clearTimeout(speechVisualTimer);
+  speechVisualStarted=performance.now();
+  speaking=true; setState('speaking');
+  speechVisualTimer=setTimeout(endSpeechVisual,ms);
+}
+function endSpeechVisual(){
+  if(speechVisualTimer) clearTimeout(speechVisualTimer);
+  speechVisualTimer=null;
+  speaking=false;
+  if(!listening) setState('standby');
+}
+function finishSpeechVisual(){
+  const elapsed=performance.now()-speechVisualStarted;
+  const hold=Math.max(360,900-elapsed);
+  if(speechVisualTimer) clearTimeout(speechVisualTimer);
+  speechVisualTimer=setTimeout(endSpeechVisual,hold);
+}
+
+function speakBrowser(text){
+  const visualMs=Math.min(6800,Math.max(1200,text.length*54));
+  if(!('speechSynthesis' in window)){ fakeSpeak(visualMs); return; }
+  try{ window.speechSynthesis.resume(); }catch(e){}
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text); u.rate=0.9; u.pitch=1.04; u.volume=0.9;
+  if(chosenVoice) u.voice=chosenVoice;
+  beginSpeechVisual(visualMs);
+  u.onstart=()=>beginSpeechVisual(visualMs);
+  u.onend=finishSpeechVisual;
+  u.onerror=finishSpeechVisual;
+  window.speechSynthesis.speak(u);
+}
+function fakeSpeak(ms){ beginSpeechVisual(ms); }
+
+function speak(){
+  const raw=textInput.value.trim();
+  const line = raw ? compose(raw) : prepareVoiceScript('', 'idle');
+  speakBrowser(line);
+}
+speakBtn.addEventListener('click',speak);
+textInput.addEventListener('keydown',e=>{ if(e.key==='Enter') speak(); });
+
+const micBtn=document.getElementById('mic');
+async function toggleMic(){
+  if(listening){
+    listening=false; micBtn.classList.remove('live'); micBtn.textContent='Listen';
+    if(micStream) micStream.getTracks().forEach(t=>t.stop());
+    if(audioCtx) audioCtx.close();
+    analyser=null; audioCtx=null; micStream=null;
+    if(!speaking) setState('standby');
+    return;
+  }
+  try{
+    micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const src=audioCtx.createMediaStreamSource(micStream);
+    analyser=audioCtx.createAnalyser(); analyser.fftSize=512; analyser.smoothingTimeConstant=0.68;
+    freqData=new Uint8Array(analyser.frequencyBinCount); src.connect(analyser);
+    listening=true; micBtn.classList.add('live'); micBtn.textContent='Stop'; setState('listening');
+  }catch(err){ setState('mic denied'); setTimeout(()=>{ if(!speaking&&!listening) setState('standby'); },1800); }
+}
+micBtn.addEventListener('click',toggleMic);
+
+function wrapDistance(a,b){
+  const d=Math.abs(a-b);
+  return Math.min(d,1-d);
+}
+function frac(v){ return v-Math.floor(v); }
+function lobe(x,c,w){
+  const d=wrapDistance(x,c);
+  return Math.exp(-(d*d)/(w*w));
+}
+function averageBands(start,end){
+  let sum=0;
+  const n=Math.max(1,end-start);
+  for(let i=start;i<end;i++) sum+=audioBands[i]||0;
+  return sum/n;
+}
+function updateAudioSignal(time){
+  if(analyser){
+    analyser.getByteFrequencyData(freqData);
+    let sum=0;
+    for(let i=0;i<freqData.length;i++) sum+=freqData[i];
+    micLevel=(sum/freqData.length)/255;
+    const usable=freqData.length*0.92;
+    for(let b=0;b<AUDIO_BANDS;b++){
+      const a=b/AUDIO_BANDS;
+      const c=(b+1)/AUDIO_BANDS;
+      const start=Math.max(0,Math.floor(Math.pow(a,1.72)*usable));
+      const end=Math.min(freqData.length,Math.max(start+1,Math.floor(Math.pow(c,1.72)*usable)));
+      let v=0;
+      for(let i=start;i<end;i++) v+=freqData[i];
+      v/=Math.max(1,end-start);
+      bandTargets[b]=Math.min(1,Math.pow(v/255,1.22)*1.55);
+    }
+  }else if(speaking){
+    micLevel+=(0-micLevel)*0.12;
+    const syllable=0.34+0.66*Math.pow(0.5+0.5*Math.sin(time*7.6+Math.sin(time*2.1)*1.7),1.7);
+    const c1=frac(time*0.035);
+    const c2=frac(0.72-time*0.024);
+    const c3=frac(0.27+time*0.018);
+    for(let b=0;b<AUDIO_BANDS;b++){
+      const x=(b+0.5)/AUDIO_BANDS;
+      const ridges=0.5+0.5*Math.sin(x*83.0+time*4.4+Math.sin(x*17.0+time*0.9)*1.2);
+      const pockets=lobe(x,c1,0.060)+0.76*lobe(x,c2,0.085)+0.46*lobe(x,c3,0.045);
+      const thick=lobe(x,0.10,0.18)*0.35;
+      const thin=lobe(x,frac(0.58+time*0.05),0.034)*0.30*ridges;
+      bandTargets[b]=Math.min(1,speakEnergy*(0.07+syllable*(pockets*0.78+thin*1.25)+thick)+ridges*0.014);
+    }
+  }else{
+    micLevel+=(0-micLevel)*0.10;
+    for(let b=0;b<AUDIO_BANDS;b++){
+      const x=(b+0.5)/AUDIO_BANDS;
+      const calm=0.014+0.012*(0.5+0.5*Math.sin(time*0.72+x*TAU*3.0));
+      const pocket=0.010*lobe(x,frac(0.18+time*0.010),0.08)+0.008*lobe(x,frac(0.76-time*0.008),0.10);
+      bandTargets[b]=calm+pocket;
+    }
+  }
+  const smooth=analyser?0.28:(speaking?0.30:0.08);
+  for(let b=0;b<AUDIO_BANDS;b++){
+    audioBands[b]+=(bandTargets[b]-audioBands[b])*smooth;
+  }
+  bassLevel+=(averageBands(0,6)-bassLevel)*0.18;
+  midLevel+=(averageBands(6,20)-midLevel)*0.18;
+  highLevel+=(averageBands(20,32)-highLevel)*0.18;
+}
+
+function frame(now){
+  const time=now*0.001;
+  if(speaking){
+    const tgt=0.5+0.5*Math.abs(Math.sin(now*0.011)*Math.cos(now*0.019));
+    speakEnergy+=(tgt-speakEnergy)*0.18;
+  }else speakEnergy+=(0-speakEnergy)*0.06;
+
+  updateAudioSignal(time);
+  pointerSmooth.lerp(pointerTarget,pointerActive?0.18:0.075);
+  pointerRadius=pointerSmooth.length();
+  pointerTheta=Math.atan2(pointerSmooth.y,pointerSmooth.x);
+  pointerStrength*=pointerActive?0.962:0.942;
+  pointerWake*=pointerActive?0.982:0.962;
+  pointerVelocity*=0.875;
+  pointerDelta.multiplyScalar(0.875);
+  agit+=(Math.min(1,speakEnergy+micLevel*1.45+pointerStrength*0.45)-agit)*0.12;
+
+  uniforms.uTime.value=time;
+  uniforms.uActivity.value=agit;
+  uniforms.uSpeakEnergy.value=speakEnergy;
+  uniforms.uMicLevel.value=micLevel;
+  uniforms.uBands.value=audioBands;
+  uniforms.uBass.value=bassLevel;
+  uniforms.uMid.value=midLevel;
+  uniforms.uHigh.value=highLevel;
+  uniforms.uPointer.value.copy(pointerSmooth);
+  uniforms.uPointerDelta.value.copy(pointerDelta);
+  uniforms.uPointerStrength.value=pointerStrength;
+  uniforms.uPointerVelocity.value=pointerVelocity;
+  uniforms.uPointerTheta.value=pointerTheta;
+  uniforms.uPointerRadius.value=pointerRadius;
+  uniforms.uPointerWake.value=pointerWake;
+
+  renderer.render(scene,camera);
+  requestAnimationFrame(frame);
+}
+
+setInterval(()=>{ clockEl.textContent=new Date().toLocaleTimeString('en-GB'); },1000);
+resize(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>
