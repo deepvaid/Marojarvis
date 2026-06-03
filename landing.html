@@ -22,7 +22,7 @@
   nav{ position:fixed; top:0; left:0; right:0; z-index:6; display:flex; align-items:center;
     justify-content:space-between; padding:26px clamp(22px,4vw,56px); }
   .nav-left{ display:flex; align-items:center; gap:clamp(22px,3vw,44px); }
-  .wordmark{ font-weight:800; font-size:22px; letter-spacing:0.01em; }
+  .wordmark{ font-weight:800; font-size:22px; letter-spacing:0.01em; color:var(--ink); text-decoration:none; cursor:pointer; }
   .nav-links{ display:flex; align-items:center; gap:clamp(16px,2vw,30px); }
   .nav-links a{ display:inline-flex; align-items:center; gap:5px; color:var(--ink); text-decoration:none;
     font-size:15px; font-weight:500; transition:color .18s; cursor:pointer; }
@@ -76,7 +76,7 @@
 
   <nav>
     <div class="nav-left">
-      <div class="wordmark">MAROPOST</div>
+      <a class="wordmark" href="landing.html">MAROPOST</a>
       <div class="nav-links">
         <a>Products <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></a>
         <a>Customers <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></a>

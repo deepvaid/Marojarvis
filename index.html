@@ -22,7 +22,7 @@
     --accent-press:#1564d6;
     --accent-tint:#e9f2fe;
     --r:14px;
-    --orb:clamp(340px, 64vh, 680px);
+    --orb:min(108vmin, 1040px);
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
@@ -41,7 +41,7 @@
     padding:22px 28px; pointer-events:none;
   }
   .topbar > *{ pointer-events:auto; }
-  .wordmark{ font-weight:800; font-size:21px; letter-spacing:0.01em; color:var(--ink); user-select:none; }
+  .wordmark{ font-weight:800; font-size:21px; letter-spacing:0.01em; color:var(--ink); user-select:none; text-decoration:none; cursor:pointer; }
   .top-right{ display:flex; align-items:center; gap:10px; }
   .ghostbtn{
     display:inline-flex; align-items:center; gap:7px; cursor:pointer;
@@ -56,9 +56,11 @@
   body.has-thread #newchat{ display:inline-flex; }
 
   /* ---- orb backdrop ---- */
-  .orb-bg{ position:fixed; inset:0; display:grid; place-items:center; z-index:0; pointer-events:none; }
+  .orb-bg{ position:fixed; inset:0; display:grid; place-items:center; z-index:0; pointer-events:none; overflow:hidden; }
   .stage{ position:relative; width:var(--orb); height:var(--orb); pointer-events:auto; }
-  #orb{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  #orb{ position:absolute; inset:0; width:100%; height:100%; display:block;
+    -webkit-mask-image:radial-gradient(circle at center, #000 56%, rgba(0,0,0,.35) 78%, transparent 92%);
+            mask-image:radial-gradient(circle at center, #000 56%, rgba(0,0,0,.35) 78%, transparent 92%); }
 
 
 
@@ -71,9 +73,9 @@
   .center > *{ pointer-events:auto; }
   body.has-thread .center{ justify-content:flex-end; padding-bottom:34px; }
 
-  .greeting{ text-align:center; max-width:540px; }
-  .greeting h1{ font-size:clamp(26px,4vw,40px); font-weight:600; letter-spacing:-0.02em; color:var(--ink); line-height:1.12; }
-  .greeting p{ margin-top:10px; font-size:15px; color:var(--dim); }
+  .greeting{ text-align:center; max-width:460px; }
+  .greeting h1{ font-size:clamp(17px,2.2vw,22px); font-weight:500; letter-spacing:-0.01em; color:var(--ink-soft); line-height:1.2; }
+  .greeting p{ margin-top:6px; font-size:13px; color:var(--dim); }
   body.has-thread .greeting{ display:none; }
 
   /* ---- conversation thread (active) ---- */
@@ -140,17 +142,17 @@
   body.has-thread .voice-cta{ display:none; }
   .bigmic{
     position:relative; width:clamp(78px,8.5vw,96px); height:clamp(78px,8.5vw,96px);
-    border-radius:50%; border:0; cursor:pointer; background:var(--accent); color:#fff;
-    display:grid; place-items:center; box-shadow:0 14px 34px -8px rgba(24,118,242,.55);
-    transition:transform .16s var(--ease), background .2s;
+    border-radius:50%; border:1px solid var(--line); cursor:pointer; background:#f4f5f7; color:var(--dimmer);
+    display:grid; place-items:center; box-shadow:0 4px 14px -8px rgba(24,27,33,.25);
+    transition:transform .16s var(--ease), background .2s, color .2s;
   }
   .bigmic svg{ width:clamp(30px,3.2vw,36px); height:clamp(30px,3.2vw,36px); }
-  .bigmic:hover{ transform:translateY(-3px) scale(1.03); }
+  .bigmic:hover{ transform:translateY(-3px) scale(1.03); color:var(--dim); }
   .bigmic:active{ transform:scale(.96); }
-  .bigmic::after{ content:""; position:absolute; inset:0; border-radius:50%; border:2px solid var(--accent); opacity:.45; animation:ring 2.6s var(--ease) infinite; }
-  @keyframes ring{ 0%{ transform:scale(1); opacity:.5; } 80%,100%{ transform:scale(1.6); opacity:0; } }
-  .bigmic.live{ background:var(--accent-press); box-shadow:0 14px 40px -6px rgba(24,118,242,.7); }
-  .bigmic.live::after{ animation-duration:1.2s; }
+  .bigmic::after{ content:""; position:absolute; inset:0; border-radius:50%; border:1.5px solid rgba(24,27,33,.10); opacity:.6; animation:ring 3s var(--ease) infinite; }
+  @keyframes ring{ 0%{ transform:scale(1); opacity:.55; } 80%,100%{ transform:scale(1.5); opacity:0; } }
+  .bigmic.live{ background:#eceef1; color:var(--ink-soft); }
+  .bigmic.live::after{ animation-duration:1.4s; }
   .voice-label{ font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--dim); min-height:14px; transition:color .3s; }
   body[data-state="listening"] .voice-label{ color:var(--accent); }
 
@@ -205,7 +207,6 @@
     .thread{ max-height:46vh; }
   }
   @media (max-height:680px){
-    :root{ --orb:clamp(300px, 88vh, 560px); }
     .center{ gap:14px; }
   }
   @media (prefers-reduced-motion: reduce){ *{ animation-duration:.001ms !important; } }
@@ -214,7 +215,7 @@
 <body data-state="idle">
 
   <div class="topbar">
-    <div class="wordmark">MAROPOST</div>
+    <a class="wordmark" href="landing.html">MAROPOST</a>
     <div class="top-right">
       <button class="ghostbtn" id="newchat" title="New conversation">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -232,10 +233,6 @@
   </div>
 
   <div class="center">
-    <div class="greeting">
-      <h1>What do you want to work on?</h1>
-      <p>Speak naturally — run a campaign, add a product, or check your numbers.</p>
-    </div>
 
     <section class="thread" id="thread" aria-live="polite"></section>
 
@@ -244,7 +241,11 @@
         <button class="bigmic" id="bigmic" aria-label="Tap to speak">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
         </button>
-        <div class="voice-label" id="voiceLabel">Tap to speak</div>
+        <div class="voice-label" id="voiceLabel"></div>
+        <div class="greeting">
+          <h1>What do you want to work on?</h1>
+          <p>Speak naturally — run a campaign, add a product, or check your numbers.</p>
+        </div>
       </div>
 
       <div class="ortype">or type</div>

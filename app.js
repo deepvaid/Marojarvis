@@ -20,7 +20,7 @@ const toastEl = document.getElementById('toast');
 function setMicVisual(live){
   micBtn.classList.toggle('live', live);
   bigMic.classList.toggle('live', live);
-  voiceLabel.textContent = live ? 'Listening…' : 'Tap to speak';
+  voiceLabel.textContent = live ? 'Listening…' : '';
 }
 
 /* ---------- orb state -> pill ---------- */

@@ -18,7 +18,7 @@
   body{ background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif;
     -webkit-font-smoothing:antialiased; overflow:hidden; }
 
-  .wordmark{ position:fixed; top:26px; left:clamp(22px,4vw,48px); z-index:6; font-weight:800; font-size:24px; letter-spacing:0.01em; }
+  .wordmark{ position:fixed; top:26px; left:clamp(22px,4vw,48px); z-index:6; font-weight:800; font-size:24px; letter-spacing:0.01em; color:var(--ink); text-decoration:none; cursor:pointer; }
   .back{ position:fixed; top:30px; right:clamp(22px,4vw,48px); z-index:6; color:var(--dim); text-decoration:none; font-size:14px; font-weight:500; transition:color .18s; }
   .back:hover{ color:var(--ink); }
 
@@ -73,7 +73,7 @@
 </head>
 <body>
 
-  <div class="wordmark">MAROPOST</div>
+  <a class="wordmark" href="landing.html">MAROPOST</a>
   <a class="back" href="landing.html">← Back to site</a>
 
   <div class="orb-bg">

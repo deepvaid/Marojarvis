@@ -5,10 +5,13 @@ import * as THREE from 'three';
 
 const canvas = document.getElementById('orb');
 
-// CSS fallback ring — always visible even if WebGL fails to initialise
+// Borderless fallback glow (silent WebGL-fail degradation) + always-on gentle float.
 ;(() => {
   const s = document.createElement('style');
-  s.textContent = `.orb-ring-fallback{position:absolute;inset:6%;border-radius:50%;pointer-events:none;border:1.5px solid rgba(24,27,33,0.14);background:radial-gradient(ellipse at center,transparent 52%,rgba(24,27,33,0.045) 68%,transparent 84%)}`;
+  s.textContent = `.orb-ring-fallback{position:absolute;inset:6%;border-radius:50%;pointer-events:none;background:radial-gradient(ellipse at center,transparent 52%,rgba(24,27,33,0.045) 68%,transparent 84%)}
+@keyframes orbFloat{0%,100%{transform:translate3d(0,-1.1%,0) scale(1)}50%{transform:translate3d(0,1.1%,0) scale(1.012)}}
+.stage{animation:orbFloat 9s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.stage{animation:none}}`;
   document.head.appendChild(s);
   const r = document.createElement('div');
   r.className = 'orb-ring-fallback';
@@ -405,7 +408,7 @@ function updateMembranePhysics(time, dt){
   }
   if (time >= nextImpulseAt){
     const active = speaking || listening || thinking || drive > 0.08;
-    if (active || Math.random() < 0.42){
+    if (active || Math.random() < 0.7){
       const sweepRaw = time * 0.055 + 0.17 * Math.sin(time * 0.37) + Math.random() * 0.12;
       const sweep = sweepRaw - Math.floor(sweepRaw);
       const center = Math.floor(sweep * PHYS_SEGMENTS);
@@ -416,7 +419,7 @@ function updateMembranePhysics(time, dt){
     const baseGap = thinking ? 0.07 + Math.random() * 0.10
                   : speaking ? 0.10 + Math.random() * 0.17
                   : listening ? 0.18 + Math.random() * 0.26
-                  : 0.85 + Math.random() * 1.35;
+                  : 0.55 + Math.random() * 0.9;
     nextImpulseAt = time + baseGap;
   }
 
@@ -431,9 +434,9 @@ function updateMembranePhysics(time, dt){
     const localAudio = audioBands[audioIdx] * 0.75 + audioBands[shiftedIdx] * 0.25;
     const syllableProfile = 0.35 + 0.65 * Math.pow(0.5 + 0.5 * Math.sin(time * 0.90 + i * 0.47), 2);
     const syllable = speaking ? speakEnergy * (0.55 + 0.45 * Math.sin(time * 5.8 + i * 0.34)) * syllableProfile : 0;
-    const slowEddy = 0.004 * Math.sin(time * 0.62 + i * 0.43) + 0.003 * Math.sin(time * 0.91 + i * 0.81);
+    const slowEddy = 0.0051 * Math.sin(time * 0.62 + i * 0.43) + 0.0038 * Math.sin(time * 0.91 + i * 0.81);
     const shimmer = thinkEnergy * 0.0035 * Math.sin(time * 9.0 + i * 1.27);
-    const idle = slowEddy + 0.002 * Math.sin(time * 1.7 + i * 0.17 + membraneWave[l] * 8.0) + shimmer;
+    const idle = slowEddy + 0.0026 * Math.sin(time * 1.7 + i * 0.17 + membraneWave[l] * 8.0) + shimmer;
     const lap = membraneWave[l] + membraneWave[r] - 2 * membraneWave[i];
     const curvature = (membraneWave[(i + 2) % PHYS_SEGMENTS] + membraneWave[(i + PHYS_SEGMENTS - 2) % PHYS_SEGMENTS] - 2 * membraneWave[i]) * 0.35;
     const source = membraneForce[i] + localAudio * (0.025 + drive * 0.070) + syllable * 0.010 + idle;
