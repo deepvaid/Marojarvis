@@ -267,10 +267,10 @@ const membraneMat = new THREE.ShaderMaterial({
       if(uAspect>1.0){ pos.x/=uAspect; } else { pos.y*=uAspect; }
       gl_Position=vec4(pos,0.0,1.0);
       float size=mix(1.00,2.05,smoke)*uDpr;
-      size*=1.0+flux*0.9+hair*(outWave+flux)*1.05;
+      size*=1.0+flux*0.5+hair*(outWave+flux)*0.7;
       size*=1.0-dust*0.55;             // dust = tiny points
       size*=1.0-curveAmt*0.5;          // finer where caught in the curl / curved flow
-      gl_PointSize=size;
+      gl_PointSize=max(1.5, size);     // floor keeps the smallest sprites antialiased (no sub-pixel twinkle)
 
       // uneven edge darkness — broad darker/lighter sectors + finer grain, slowly drifting
       float angBroad=noise(theta*3.0+t*0.035);
@@ -358,7 +358,7 @@ const ambientMat = new THREE.ShaderMaterial({
       pos = mat2(c,-s,s,c) * pos;
       if(uAspect>1.0){ pos.x/=uAspect; } else { pos.y*=uAspect; }
       gl_Position=vec4(pos,0.0,1.0);
-      gl_PointSize = mix(1.0, 2.4, depth) * uDpr * (0.92 + 0.16*sin(t*0.5+aSeed));
+      gl_PointSize = max(1.5, mix(1.2, 2.4, depth) * uDpr);   // static size + floor → steady halo points, no twinkle
       vA = mix(0.026, 0.085, depth) * (0.82 + 0.18*smoothstep(3.33, 0.3, length(aPos))); // fills to the edges (nearly even, a hair denser near the orb)
     }`,
   fragmentShader:`
