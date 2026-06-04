@@ -219,11 +219,11 @@ const membraneMat = new THREE.ShaderMaterial({
       float organic=(noise(theta*5.0+t*0.075+aSeed*0.010)-0.5)*0.0145;
       organic+=(noise(theta*13.0-t*0.115+aSeed*0.017)-0.5)*0.0085;
       float breath=sin(t*0.82+aSeed*0.035)*0.006;
-      float membrane=wave*(0.130+smoke*0.190+hair*0.255)*aGain;
+      float membrane=wave*(0.150+smoke*0.210+hair*0.290)*aGain;
       float flutter=sin(t*(5.0+uAgit*7.0)+aSeed*0.13+angle*2.0)*0.0045*flux;
 
       float smokeLift=(noise(theta*23.0+t*0.18+aSeed*0.023)-0.34)*(0.013+uAgit*0.022+flux*0.044);
-      float hairLift=aBurst*(0.018+0.160*outWave+0.085*flux);
+      float hairLift=aBurst*(0.022+0.250*outWave+0.140*flux);
       float dustDrift=(noise(aSeed*0.7+t*0.06)-0.5)*0.05;   // tiny living drift across the field
       float defGate=smoothstep(0.61,0.76,aBaseRadius);   // 0 at the inner edge → inside stays a perfect circle; deformation grows outward
       float radius=aBaseRadius+(organic+breath+membrane+flutter+lobe)*solid*defGate+audio*0.012*aGain;
@@ -572,7 +572,7 @@ function updateMembranePhysics(time, dt){
       const sweepRaw = time * 0.055 + 0.17 * Math.sin(time * 0.37) + Math.random() * 0.08;
       const sweep = sweepRaw - Math.floor(sweepRaw);
       const center = Math.floor(sweep * PHYS_SEGMENTS);
-      const strength = (0.022 + drive * 0.155) * (speaking ? 1.12 : 1.0) * (thinking ? 0.7 : 1.0);
+      const strength = (0.022 + drive * 0.155) * (speaking ? 1.4 : 1.0) * (thinking ? 0.7 : 1.0);
       const spread = thinking ? (0.7 + Math.random() * 0.35) : (1.05 + drive * 1.35 + Math.random() * 0.28);
       addMembraneImpulse(center, strength, spread);
     }
@@ -593,7 +593,7 @@ function updateMembranePhysics(time, dt){
     const shiftedIdx = (audioIdx + Math.floor(AUDIO_BANDS * 0.33)) % AUDIO_BANDS;
     const localAudio = audioBands[audioIdx] * 0.75 + audioBands[shiftedIdx] * 0.25;
     const syllableProfile = 0.35 + 0.65 * Math.pow(0.5 + 0.5 * Math.sin(time * 0.90 + i * 0.47), 2);
-    const syllable = speaking ? speakEnergy * (0.55 + 0.45 * Math.sin(time * 5.8 + i * 0.34)) * syllableProfile : 0;
+    const syllable = speaking ? speakEnergy * (0.80 + 0.62 * Math.sin(time * 5.8 + i * 0.34)) * syllableProfile : 0;
     const slowEddy = 0.0088 * Math.sin(time * 0.62 + i * 0.43) + 0.0066 * Math.sin(time * 0.91 + i * 0.81);
     const shimmer = thinkEnergy * 0.0035 * Math.sin(time * 9.0 + i * 1.27);
     const idle = slowEddy + 0.0048 * Math.sin(time * 1.7 + i * 0.17 + membraneWave[l] * 8.0) + shimmer;
