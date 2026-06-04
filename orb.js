@@ -429,13 +429,22 @@ function rankVoice(v){
 function refreshVoices(){
   voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
   if (!voices.length) return;
-  // preferred voice: Google UK English Female (Chrome); fall back to the ranked best elsewhere
-  const preferred = voices.find(v => /google uk english female/i.test(v.name))
-                 || voices.find(v => /google uk english/i.test(v.name));
-  if (preferred){ chosenVoice = preferred; return; }
-  let best = 0, bs = -1e9;
-  voices.forEach((v, i) => { const r = rankVoice(v); if (r > bs) { bs = r; best = i; } });
-  chosenVoice = voices[best];
+  const find = (nameRe, langRe) => voices.find(v => nameRe.test(v.name) && (!langRe || langRe.test(v.lang)));
+  const inOrder = (names, langRe) => {
+    for (const n of names){ const v = find(new RegExp('\\b' + n + '\\b', 'i'), langRe); if (v) return v; }
+    return null;
+  };
+  const rankedBest = () => {
+    let best = 0, bs = -1e9;
+    voices.forEach((v, i) => { const r = rankVoice(v); if (r > bs) { bs = r; best = i; } });
+    return voices[best];
+  };
+  chosenVoice =
+    find(/google uk english female/i) || find(/google uk english/i)                                           // Chrome: real Google voice
+    || inOrder(['kate','serena','stephanie','martha','shelley','sandy','fiona','moira','flo'], /en[-_]GB/i)    // Safari/macOS: best native en-GB female
+    || inOrder(['samantha','ava','allison','susan','victoria','tessa','catherine','zoe'], /^en/i)              // best en female (any locale)
+    || find(/en[-_]GB/i)                                                                                       // any en-GB
+    || rankedBest();                                                                                           // ultimate fallback
 }
 if ('speechSynthesis' in window){ refreshVoices(); window.speechSynthesis.onvoiceschanged = refreshVoices; }
 
