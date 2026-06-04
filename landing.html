@@ -68,14 +68,22 @@
   .sec-sub{ font-size:clamp(15px,1.3vw,18px); color:var(--dim); margin-top:18px; max-width:620px; line-height:1.5; }
 
   /* logo strip */
-  .logos{ position:relative; z-index:1; background:transparent; padding:clamp(40px,6vh,68px) 0; }
+  .logos{ position:relative; z-index:1; background:transparent; padding:clamp(40px,6vh,68px) 0; margin-top:-22vh; }
   /* sections that reveal the fixed orb behind them */
   .section.why{ background:transparent; }
-  .logos-row{ width:100%; max-width:1320px; margin:0 auto; padding:0 clamp(22px,5vw,48px);
-    display:flex; align-items:center; justify-content:space-between; gap:clamp(26px,3.5vw,72px); flex-wrap:wrap; }
-  .logos-row img{ height:30px; width:auto; max-width:150px; object-fit:contain; opacity:.85;
-    filter:saturate(0); transition:opacity .2s; }
-  .logos-row img:hover{ opacity:1; }
+  .marquee{ width:100%; overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
+            mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); }
+  .marquee-track{ display:flex; align-items:center; gap:clamp(44px,5vw,88px); width:max-content;
+    animation:logoscroll 90s linear infinite; }
+  .marquee:hover .marquee-track{ animation-play-state:paused; }
+  .marquee-track .lg{ height:26px; width:auto; flex:0 0 auto; filter:brightness(0); opacity:.38; transition:opacity .25s; display:block; }
+  .marquee-track .lg:hover{ opacity:1; }
+  @keyframes logoscroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce){
+    .marquee{ -webkit-mask-image:none; mask-image:none; }
+    .marquee-track{ animation:none; flex-wrap:wrap; justify-content:center; width:100%; gap:clamp(28px,4vw,56px); }
+  }
 
   /* why maropost */
   .why-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-top:clamp(40px,5vh,56px); }
@@ -226,14 +234,24 @@
 
   <!-- customer logos -->
   <section class="logos" aria-label="Trusted by">
-    <div class="logos-row">
-      <img src="assets/logos/xero.png" alt="Xero">
-      <img src="assets/logos/seiko.png" alt="Seiko">
-      <img src="assets/logos/gusto.png" alt="Gusto">
-      <img src="assets/logos/iconbydesign.png" alt="IconByDesign">
-      <img src="assets/logos/expensify.png" alt="Expensify">
-      <img src="assets/logos/venmo.png" alt="Venmo">
-      <img src="assets/logos/plaid.png" alt="Plaid">
+    <div class="marquee">
+      <div class="marquee-track" id="logoTrack">
+        <img class="lg" src="logos/sandro.svg" alt="Sandro">
+        <img class="lg" src="logos/mountain-equipment-company.svg" alt="Mountain Equipment Company">
+        <img class="lg" src="logos/mxstore.svg" alt="MXSTORE">
+        <img class="lg" src="logos/weber.svg" alt="Weber">
+        <img class="lg" src="logos/salomon.svg" alt="Salomon">
+        <img class="lg" src="logos/seiko.svg" alt="Seiko">
+        <img class="lg" src="logos/biotrust.svg" alt="BioTrust">
+        <img class="lg" src="logos/giant.svg" alt="Giant">
+        <img class="lg" src="logos/iconbydesign.svg" alt="IconByDesign">
+        <img class="lg" src="logos/luxottica.svg" alt="Luxottica">
+        <img class="lg" src="logos/mercedes-benz.svg" alt="Mercedes-Benz">
+        <img class="lg" src="logos/intersport.svg" alt="Intersport">
+        <img class="lg" src="logos/draper-james.svg" alt="Draper James">
+        <img class="lg" src="logos/7-for-all-mankind.svg" alt="7 For All Mankind">
+        <img class="lg" src="logos/municipal.svg" alt="Municipal">
+      </div>
     </div>
   </section>
 
@@ -454,9 +472,13 @@
   (function(){
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    /* --- duplicate logo marquee for a seamless loop --- */
+    const logoTrack = document.getElementById('logoTrack');
+    if (logoTrack && !reduce) logoTrack.innerHTML += logoTrack.innerHTML;
+
     /* --- scroll-reveal (staggered) --- */
     if (document.documentElement.classList.contains('reveal-on') && 'IntersectionObserver' in window){
-      const sel = '.logos-row,.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-grid,.story-main,.story-side,.cta-title';
+      const sel = '.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-grid,.story-main,.story-side,.cta-title';
       // stagger items within their groups
       document.querySelectorAll('.why-grid,.stats,.cloud-list,.stories-grid').forEach(group => {
         [...group.children].forEach((c,i)=> c.style.setProperty('--d', (i*0.08)+'s'));
