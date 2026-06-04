@@ -28,7 +28,7 @@ const pointerField = { active:false, theta:0, radius:0, velocity:0, lastX:0, las
 // magnetic-cursor target (inverse-aspect NDC) + smoothed uniform values
 const pointerTarget = { x:0, y:0, str:0 };
 let pointerSmX = 0, pointerSmY = 0, pointerSmStr = 0;
-let nextImpulseAt = 0, lastFrameTime = 0, pointerCool = 0;
+let nextImpulseAt = 0, lastFrameTime = 0, pointerCool = 0, animTime = 0;
 
 // ---- exported state API ----
 let currentState = 'idle';
@@ -616,11 +616,17 @@ function updateMembranePhysics(time, dt){
 }
 
 function frame(now){
-  const time = now * 0.001;
-  const dt = lastFrameTime ? Math.min(0.033, Math.max(0.001, time - lastFrameTime)) : 1 / 60;
-  lastFrameTime = time;
+  const real = now * 0.001;
+  const dt = lastFrameTime ? Math.min(0.033, Math.max(0.001, real - lastFrameTime)) : 1 / 60;
+  lastFrameTime = real;
+  // Drive ALL motion from a clock that only ever advances by the clamped dt. requestAnimationFrame's
+  // timestamp leaps forward after a tab switch / GC / long paint hitch; feeding that raw jump to uTime
+  // snaps every sin()/noise()-driven particle (and the field rotation) to a new phase in a single
+  // frame — the visible jerk. Accumulating dt instead resumes exactly where it left off.
+  animTime += dt;
+  const time = animTime;
   if (speaking){
-    const tgt = 0.26 + 0.26 * Math.abs(Math.sin(now * 0.011) * Math.cos(now * 0.019));
+    const tgt = 0.26 + 0.26 * Math.abs(Math.sin(time * 11.0) * Math.cos(time * 19.0));
     speakEnergy += (tgt - speakEnergy) * 0.18;
   } else speakEnergy += (0 - speakEnergy) * 0.06;
   thinkEnergy += ((thinking ? 1 : 0) - thinkEnergy) * (thinking ? 0.10 : 0.08);
