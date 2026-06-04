@@ -118,12 +118,12 @@
   .story-side img{ width:100%; height:100%; object-fit:cover; display:block; }
 
   /* cta */
-  .cta-section{ position:relative; z-index:1; background:var(--bg); padding:clamp(80px,14vh,160px) 0; text-align:center; }
+  .cta-section{ position:relative; z-index:1; background:transparent; padding:clamp(80px,14vh,160px) 0; text-align:center; }
   .cta-title{ font-size:clamp(34px,5vw,56px); font-weight:500; line-height:1.05; letter-spacing:-0.02em; max-width:900px; margin:0 auto; }
   .cta-section .cta-row{ justify-content:center; }
 
   /* footer */
-  .footer{ position:relative; z-index:1; background:rgba(15,16,18,0.93); color:#fff; padding-top:clamp(64px,9vh,96px); overflow:hidden; }
+  .footer{ position:relative; z-index:1; background:#0f1012; color:#fff; padding-top:clamp(64px,9vh,96px); overflow:hidden; }
   .footer-cols{ display:grid; grid-template-columns:repeat(6,1fr); gap:30px; }
   .fcol h4{ font-size:15px; font-weight:600; margin-bottom:18px; }
   .fcol a{ display:block; color:#9aa0a6; font-size:14px; line-height:1.35; text-decoration:none; margin-bottom:12px; transition:color .18s; }
@@ -204,7 +204,7 @@
 
   <div class="orb-bg">
     <div class="stage">
-      <canvas id="orb" data-opacity="2.7"></canvas>
+      <canvas id="orb" data-wavy="1"></canvas>
     </div>
   </div>
 
@@ -403,8 +403,8 @@
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const stage = document.querySelector('.stage');
     const whyEl = document.querySelector('.section.why');
-    const footerEl = document.querySelector('.footer');
-    if (!stage || !whyEl || !footerEl) return;
+    const ctaEl = document.querySelector('.cta-section');
+    if (!stage || !whyEl || !ctaEl) return;
 
     const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
     const lerp = (a,b,t) => a + (b-a)*t;
@@ -415,8 +415,8 @@
       const vh = window.innerHeight;
       const y = window.scrollY || window.pageYOffset;
       const whyBottom = whyEl.offsetTop + whyEl.offsetHeight - vh;   // Why fully scrolled through
-      const footerEnter = footerEl.offsetTop - vh;                  // footer starts entering
-      const footerSettled = footerEl.offsetTop - vh * 0.4;
+      const ctaEnter = ctaEl.offsetTop - vh;                        // CTA starts entering
+      const ctaSettled = ctaEl.offsetTop - vh * 0.45;               // CTA roughly centred
 
       let scale, ox, oy, op;
       if (y <= whyBottom){
@@ -426,16 +426,16 @@
         ox = lerp(0, -26, t);   // vw
         oy = lerp(0, 12, t);    // vh
         op = lerp(1, 0.32, t);
-      } else if (y < footerEnter){
+      } else if (y < ctaEnter){
         // middle sections (opaque cover the orb anyway)
         scale = 1.7; ox = -26; oy = 12; op = 0.32;
       } else {
-        // footer: ease back toward center, faint through the dark overlay
-        const t = clamp((y - footerEnter) / Math.max(1, footerSettled - footerEnter), 0, 1);
-        scale = lerp(1.7, 1.85, t);
-        ox = lerp(-26, -6, t);
-        oy = lerp(12, 4, t);
-        op = lerp(0.32, 0.7, t);
+        // CTA: ease back to centre and brighten — the orb's second moment (footer stays opaque/orb-free)
+        const t = clamp((y - ctaEnter) / Math.max(1, ctaSettled - ctaEnter), 0, 1);
+        scale = lerp(1.7, 1.4, t);
+        ox = lerp(-26, 0, t);
+        oy = lerp(12, 0, t);
+        op = lerp(0.32, 0.62, t);
       }
       stage.style.transform = 'translate(' + ox + 'vw,' + oy + 'vh) scale(' + scale + ')';
       stage.style.opacity = op.toFixed(3);

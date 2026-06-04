@@ -23,8 +23,9 @@ function setMicVisual(live){
   voiceLabel.textContent = live ? 'Listening…' : '';
 }
 
-/* ---------- orb state -> pill ---------- */
-Orb.onState = (s) => { body.dataset.state = s; stateText.textContent = s; };
+/* ---------- orb state -> pill (shows a subtle caption of what's being said while speaking) ---------- */
+let captionText = '';
+Orb.onState = (s) => { body.dataset.state = s; stateText.textContent = (s === 'speaking' && captionText) ? captionText : s; };
 
 let toastTimer = null;
 function toast(msg){
@@ -162,6 +163,7 @@ function respond(text, { card, quick, onSpoken } = {}){
     const turn = addTurn('ai', text);
     if (card) attachCard(turn, card);
     if (quick) attachQuick(turn, quick);
+    captionText = text;
     Orb.speak(text, { onend: () => { busy = false; if (onSpoken) onSpoken(); } });
     // safety: release busy even if speech unavailable
     setTimeout(() => { busy = false; }, 200);
@@ -322,7 +324,7 @@ newChat.addEventListener('click', () => {
   try { window.speechSynthesis.cancel(); } catch(e){}
   input.focus();
 });
-classicUI.addEventListener('click', () => window.open('https://mb-option2.vercel.app/accounts/2000290/dashboard', '_blank', 'noopener'));
+classicUI.addEventListener('click', () => { window.location.href = 'https://mb-option2.vercel.app/accounts/2000290/dashboard'; });
 
 /* ---------- real speech-to-text ---------- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -397,3 +399,29 @@ window.MaropostAI = {
   },
   setSpokenReplies(on){ Orb.spokenEnabled = on; }
 };
+
+/* ---------- first-open spoken greeting (time-aware, warm) ---------- */
+(function(){
+  if (!('speechSynthesis' in window)) return;
+  let greeted = false;
+  const line = () => {
+    const h = new Date().getHours();
+    const period = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
+    return `Hi, good ${period}. How can I help you?`;
+  };
+  const greet = () => {
+    if (greeted || !Orb.spokenEnabled) return;
+    const t = line();
+    captionText = t;
+    try { window.speechSynthesis.cancel(); } catch(e){}
+    Orb.speak(t, { rate:0.95, pitch:1.06, visualOnStart:true, onstart:() => { greeted = true; } });
+  };
+  // best-effort on open (plays immediately if the browser allows autoplay)
+  setTimeout(greet, 600);
+  // reliable fallback: browsers block speech until a user gesture
+  const onGesture = () => {
+    greet();
+    ['pointerdown','keydown','touchstart','click'].forEach(ev => window.removeEventListener(ev, onGesture));
+  };
+  ['pointerdown','keydown','touchstart','click'].forEach(ev => window.addEventListener(ev, onGesture));
+})();

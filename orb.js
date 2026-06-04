@@ -4,7 +4,8 @@
 import * as THREE from 'three';
 
 const canvas = document.getElementById('orb');
-const ORB_OPACITY = parseFloat(canvas && canvas.dataset.opacity) || 1; // per-page visibility via data-opacity
+const ORB_OPACITY = parseFloat(canvas && canvas.dataset.opacity) || 2.7; // visibility (consistent default across all pages)
+const ORB_WAVY = (canvas && parseFloat(canvas.dataset.wavy)) || 0;        // per-page: darker inner + wavy outer edge (landing only)
 
 const TAU = Math.PI * 2;
 const AUDIO_BANDS = 16;
@@ -111,6 +112,7 @@ const uniforms = {
   uRadius:{ value:0.64 },
   uDpr:{ value:1 },
   uOpacity:{ value:ORB_OPACITY },
+  uShape:{ value:ORB_WAVY },
   uPointer:{ value:new THREE.Vector2(0, 0) },
   uPointerStr:{ value:0 },
   uAudio:{ value:audioBands },
@@ -138,6 +140,7 @@ const membraneMat = new THREE.ShaderMaterial({
     uniform float uDpr;
     uniform vec2 uPointer;
     uniform float uPointerStr;
+    uniform float uShape;
     uniform float uAudio[16];
     uniform float uWave[48];
     uniform float uFlux[48];
@@ -228,6 +231,18 @@ const membraneMat = new THREE.ShaderMaterial({
       radius+=hair*hairLift*solid;
       radius+=dust*dustDrift;
 
+      // idle traveling swell — a soft cursor-like wave that orbits the rim and wraps around (connects)
+      float wp=fract(t*0.055);
+      float ad=abs(fract(theta-wp+0.5)-0.5);
+      float swell=exp(-ad*ad/(2.0*0.045*0.045))*0.020;
+      radius+=swell*solid*defGate;
+
+      // double the outer field beyond the inner edge — inner circle radius unchanged.
+      // uShape (landing): wavy, inconsistent-thickness outer edge; else plain ×2.
+      float thick=0.75+0.55*noise(theta*3.0+t*0.04)+0.30*sin(theta*6.2831853*5.0+t*0.07);
+      float dbl=1.0+smoke*mix(1.0, thick, uShape);
+      if(radius>0.60) radius=0.60+(radius-0.60)*dbl;
+
       float tangent=(noise(aSeed+t*0.16)-0.5)*(0.004+smoke*0.014+flux*0.026);
       tangent+=wave*0.030*(noise(theta*17.0+aSeed*0.02)-0.5)*solid;
       tangent+=dust*(noise(aSeed*1.3+t*0.05)-0.5)*0.06;
@@ -251,8 +266,8 @@ const membraneMat = new THREE.ShaderMaterial({
 
       if(uAspect>1.0){ pos.x/=uAspect; } else { pos.y*=uAspect; }
       gl_Position=vec4(pos,0.0,1.0);
-      float size=mix(1.00,2.45,smoke)*uDpr;
-      size*=1.0+flux*1.25+hair*(outWave+flux)*1.05;
+      float size=mix(1.00,2.05,smoke)*uDpr;
+      size*=1.0+flux*0.9+hair*(outWave+flux)*1.05;
       size*=1.0-dust*0.55;             // dust = tiny points
       size*=1.0-curveAmt*0.5;          // finer where caught in the curl / curved flow
       gl_PointSize=size;
@@ -262,13 +277,14 @@ const membraneMat = new THREE.ShaderMaterial({
       float angFine=noise(theta*11.0+aGap*0.010+t*0.06);
       float uneven=angBroad*0.6+angFine*0.4;
 
-      float ringAlpha=mix(0.150,0.060,smoke);
-      ringAlpha=mix(ringAlpha,0.090,hair);
-      ringAlpha=mix(ringAlpha,0.045,dust);
+      float ringAlpha=mix(0.155,0.075,smoke);
+      ringAlpha=mix(ringAlpha,0.110,hair);
+      ringAlpha=mix(ringAlpha,0.055,dust);
+      ringAlpha+=(1.0-smoke)*0.075*uShape;   // darker inner ring (landing)
       vAlpha=ringAlpha*(0.66+aGain*0.48)*(1.0+flux*1.05+absWave*0.92+hair*aBurst*0.42);
-      vAlpha*=mix(1.0, 0.40+1.0*uneven, mix(0.85,0.6,dust));
+      vAlpha*=mix(1.0, 0.28+1.25*uneven, mix(0.92,0.7,dust));
       float pDark=hash(aSeed*0.013);
-      vInk=clamp(0.34+flux*0.44+outWave*0.28+hair*0.18+audio*0.18+pDark*0.26,0.0,1.0);
+      vInk=clamp(0.34+flux*0.26+outWave*0.16+hair*0.18+audio*0.18+pDark*0.34+(1.0-smoke)*0.20*uShape,0.0,1.0);
       vSeed=aSeed;
 
       // faint white-light spectral shimmer on the edges — travels around the rim and over time (alive at idle)
@@ -295,7 +311,7 @@ const membraneMat = new THREE.ShaderMaterial({
       float disc=1.0-smoothstep(0.08,0.50,d);
       disc*=0.78+0.22*(1.0-smoothstep(0.0,0.32,d));
       float grain=0.86+0.14*hash(vSeed+floor(uTime*14.0));
-      vec3 ink=mix(vec3(0.34,0.37,0.41),vec3(0.03,0.035,0.04),vInk);
+      vec3 ink=mix(vec3(0.30,0.32,0.35),vec3(0.03,0.035,0.04),vInk);
       float hueAmt=vEdge*0.18;
       vec3 col=mix(ink,ink*0.65+spectrum(vHueP)*0.45,hueAmt);
       gl_FragColor=vec4(col,vAlpha*disc*grain*uOpacity);
@@ -305,6 +321,56 @@ const membraneMat = new THREE.ShaderMaterial({
   depthWrite:false,
   blending:THREE.NormalBlending
 });
+
+// ---- 3D ambient particle field — a sparse dusty halo around the orb (depth + parallax → floats in 3D) ----
+const AMBIENT = 13000;
+const ambPos = new Float32Array(AMBIENT * 2);
+const ambDepth = new Float32Array(AMBIENT);
+const ambSeed = new Float32Array(AMBIENT);
+for (let i = 0; i < AMBIENT; i++){
+  const a = Math.random() * TAU;
+  const r = 0.15 + Math.sqrt(Math.random()) * 2.65;   // area-uniform disc to ~2.8 → fills the whole viewport (incl. corners)
+  ambPos[i*2] = Math.cos(a) * r;
+  ambPos[i*2+1] = Math.sin(a) * r;
+  ambDepth[i] = Math.random();
+  ambSeed[i] = Math.random() * 1000.0;
+}
+const ambGeo = new THREE.BufferGeometry();
+ambGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(AMBIENT * 3), 3)); // unused, required
+ambGeo.setAttribute('aPos', new THREE.BufferAttribute(ambPos, 2));
+ambGeo.setAttribute('aDepth', new THREE.BufferAttribute(ambDepth, 1));
+ambGeo.setAttribute('aSeed', new THREE.BufferAttribute(ambSeed, 1));
+const ambientMat = new THREE.ShaderMaterial({
+  uniforms,
+  vertexShader:`
+    precision highp float;
+    attribute vec2 aPos; attribute float aDepth; attribute float aSeed;
+    uniform float uTime; uniform float uAspect; uniform float uDpr;
+    varying float vA;
+    void main(){
+      float t=uTime; float depth=aDepth; vec2 pos=aPos;
+      // gentle drift + depth-driven parallax (nearer = moves more) → 3D feel
+      pos += vec2(sin(t*0.06+aSeed*0.7), cos(t*0.05+aSeed*0.9)) * (0.008 + depth*0.030);
+      float rot = t*(0.008 + depth*0.045);   // slower, depth-layered → its own 3D volume (orb spins faster within it)
+      float c=cos(rot), s=sin(rot);
+      pos = mat2(c,-s,s,c) * pos;
+      if(uAspect>1.0){ pos.x/=uAspect; } else { pos.y*=uAspect; }
+      gl_Position=vec4(pos,0.0,1.0);
+      gl_PointSize = mix(0.7, 2.3, depth) * uDpr * (0.85 + 0.30*sin(t*0.5+aSeed));
+      vA = mix(0.026, 0.085, depth) * (0.82 + 0.18*smoothstep(2.8, 0.3, length(aPos))); // fills to the edges (nearly even, a hair denser near the orb)
+    }`,
+  fragmentShader:`
+    precision highp float;
+    uniform float uOpacity;
+    varying float vA;
+    void main(){
+      float d=length(gl_PointCoord-0.5);
+      float disc=1.0-smoothstep(0.1,0.5,d);
+      gl_FragColor=vec4(vec3(0.10,0.11,0.13), vA*disc*uOpacity*0.5);
+    }`,
+  transparent:true, depthTest:false, depthWrite:false, blending:THREE.NormalBlending
+});
+scene.add(new THREE.Points(ambGeo, ambientMat));   // added first → renders behind the ring
 
 const membrane = new THREE.Points(geo, membraneMat);
 scene.add(membrane);
@@ -363,6 +429,10 @@ function rankVoice(v){
 function refreshVoices(){
   voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
   if (!voices.length) return;
+  // preferred voice: Google UK English Female (Chrome); fall back to the ranked best elsewhere
+  const preferred = voices.find(v => /google uk english female/i.test(v.name))
+                 || voices.find(v => /google uk english/i.test(v.name));
+  if (preferred){ chosenVoice = preferred; return; }
   let best = 0, bs = -1e9;
   voices.forEach((v, i) => { const r = rankVoice(v); if (r > bs) { bs = r; best = i; } });
   chosenVoice = voices[best];
@@ -400,10 +470,10 @@ function speak(text, opts = {}){
   try { window.speechSynthesis.resume(); } catch(e){}
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  u.rate = 0.99; u.pitch = 1.0;
+  u.rate = opts.rate || 0.99; u.pitch = opts.pitch || 1.0;
   if (chosenVoice) u.voice = chosenVoice;
-  beginSpeechVisual(visualMs);
-  u.onstart = () => beginSpeechVisual(visualMs);
+  if (!opts.visualOnStart) beginSpeechVisual(visualMs);
+  u.onstart = () => { beginSpeechVisual(visualMs); if (opts.onstart) opts.onstart(); };
   u.onend = () => { finishSpeechVisual(); if (opts.onend) opts.onend(); };
   u.onerror = () => { finishSpeechVisual(); if (opts.onend) opts.onend(); };
   window.speechSynthesis.speak(u);
@@ -478,7 +548,7 @@ function updateMembranePhysics(time, dt){
   if ((pointerField.active || pointerCool > 0) && pointerField.radius > 0.34 && pointerField.radius < 1.03){
     const center = Math.floor(pointerField.theta * PHYS_SEGMENTS);
     const radial = Math.max(0, 1 - Math.abs(pointerField.radius - 0.64) / 0.42);
-    const strength = (0.009 + pointerField.velocity * 0.011) * radial * (pointerField.active ? 1.0 : 0.45);
+    const strength = (0.006 + pointerField.velocity * 0.006) * radial * (pointerField.active ? 1.0 : 0.45);
     addMembraneImpulse(center, strength, 2.6 + radial * 1.6);
   }
   if (time >= nextImpulseAt){
@@ -524,7 +594,7 @@ function updateMembranePhysics(time, dt){
     nextVelocity[i] = vel;
     membraneForce[i] *= Math.exp(-dt * 9.5);
     const fluxTarget = clampValue(Math.abs(vel) * 2.8 + Math.abs(wave) * 3.2 + localAudio * 0.48 + drive * 0.035, 0, 1);
-    membraneFlux[i] += (fluxTarget - membraneFlux[i]) * (fluxTarget > membraneFlux[i] ? 0.34 : 0.12);
+    membraneFlux[i] += (fluxTarget - membraneFlux[i]) * (fluxTarget > membraneFlux[i] ? 0.20 : 0.12);
   }
   membraneWave.set(nextWave);
   membraneVelocity.set(nextVelocity);
