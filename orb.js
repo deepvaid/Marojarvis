@@ -291,8 +291,8 @@ const membraneMat = new THREE.ShaderMaterial({
       float edge=smoke*0.6+hair*1.0+dust*0.5;
       vEdge=edge;
       vHueP=theta*2.5+t*0.05+wave*1.4;
-      float lightWave=sin(theta*18.0-t*0.8+wave*6.0)*0.5+0.5;
-      vAlpha*=1.0+edge*(lightWave-0.5)*0.5+edge*flux*0.4;
+      float lightWave=sin(theta*12.0-t*0.55+wave*6.0)*0.5+0.5;
+      vAlpha*=1.0+edge*(lightWave-0.5)*0.34+edge*flux*0.26;
     }`,
   fragmentShader:`
     precision highp float;
@@ -310,7 +310,7 @@ const membraneMat = new THREE.ShaderMaterial({
       float d=length(p);
       float disc=1.0-smoothstep(0.08,0.50,d);
       disc*=0.78+0.22*(1.0-smoothstep(0.0,0.32,d));
-      float grain=0.86+0.14*hash(vSeed+floor(uTime*14.0));
+      float grain=0.92+0.08*hash(vSeed);
       vec3 ink=mix(vec3(0.30,0.32,0.35),vec3(0.03,0.035,0.04),vInk);
       float hueAmt=vEdge*0.18;
       vec3 col=mix(ink,ink*0.65+spectrum(vHueP)*0.45,hueAmt);
@@ -329,7 +329,7 @@ const ambDepth = new Float32Array(AMBIENT);
 const ambSeed = new Float32Array(AMBIENT);
 for (let i = 0; i < AMBIENT; i++){
   const a = Math.random() * TAU;
-  const r = 0.15 + Math.sqrt(Math.random()) * 2.65;   // area-uniform disc to ~2.8 → fills the whole viewport (incl. corners)
+  const r = 0.15 + Math.sqrt(Math.random()) * 3.18;   // area-uniform disc to ~3.33 → fills the whole viewport, 20% wider
   ambPos[i*2] = Math.cos(a) * r;
   ambPos[i*2+1] = Math.sin(a) * r;
   ambDepth[i] = Math.random();
@@ -351,13 +351,15 @@ const ambientMat = new THREE.ShaderMaterial({
       float t=uTime; float depth=aDepth; vec2 pos=aPos;
       // gentle drift + depth-driven parallax (nearer = moves more) → 3D feel
       pos += vec2(sin(t*0.06+aSeed*0.7), cos(t*0.05+aSeed*0.9)) * (0.008 + depth*0.030);
-      float rot = t*(0.008 + depth*0.045);   // slower, depth-layered → its own 3D volume (orb spins faster within it)
+      float rr = length(aPos);
+      float radial = clamp(rr/3.33, 0.0, 1.0);
+      float rot = t*(0.050 - radial*0.038 + depth*0.006);   // near edge keeps pace with the ring; outward lags (subtle), tiny depth variation
       float c=cos(rot), s=sin(rot);
       pos = mat2(c,-s,s,c) * pos;
       if(uAspect>1.0){ pos.x/=uAspect; } else { pos.y*=uAspect; }
       gl_Position=vec4(pos,0.0,1.0);
-      gl_PointSize = mix(0.7, 2.3, depth) * uDpr * (0.85 + 0.30*sin(t*0.5+aSeed));
-      vA = mix(0.026, 0.085, depth) * (0.82 + 0.18*smoothstep(2.8, 0.3, length(aPos))); // fills to the edges (nearly even, a hair denser near the orb)
+      gl_PointSize = mix(1.0, 2.4, depth) * uDpr * (0.92 + 0.16*sin(t*0.5+aSeed));
+      vA = mix(0.026, 0.085, depth) * (0.82 + 0.18*smoothstep(3.33, 0.3, length(aPos))); // fills to the edges (nearly even, a hair denser near the orb)
     }`,
   fragmentShader:`
     precision highp float;
@@ -422,7 +424,11 @@ function rankVoice(v){
   if (/online \(natural\)|natural|neural/i.test(v.name)) s += 30;
   if (/enhanced|premium/i.test(v.name)) s += 18;
   if (/en[-_]US|en[-_]GB/i.test(v.lang)) s += 8;
-  if (/google us english|google uk english/i.test(v.name)) s += 5;
+  if (/google uk english male/i.test(v.name)) s += 12;   // Chrome's natural male
+  if (/google (us|uk) english/i.test(v.name)) s += 4;
+  if (/\b(daniel|arthur|oliver|george|thomas|aaron|fred|alex)\b/i.test(v.name)) s += 8; // native male
+  if (/\bmale\b/i.test(v.name)) s += 4;
+  if (/\bfemale\b|samantha|kate|serena|moira|fiona|tessa|victoria|allison|ava|susan|karen|zira/i.test(v.name)) s -= 12;
   if (/^en/i.test(v.lang)) s += 1;
   return s;
 }
@@ -440,11 +446,11 @@ function refreshVoices(){
     return voices[best];
   };
   chosenVoice =
-    find(/google uk english female/i) || find(/google uk english/i)                                           // Chrome: real Google voice
-    || inOrder(['kate','serena','stephanie','martha','shelley','sandy','fiona','moira','flo'], /en[-_]GB/i)    // Safari/macOS: best native en-GB female
-    || inOrder(['samantha','ava','allison','susan','victoria','tessa','catherine','zoe'], /^en/i)              // best en female (any locale)
-    || find(/en[-_]GB/i)                                                                                       // any en-GB
-    || rankedBest();                                                                                           // ultimate fallback
+    find(/google uk english male/i)                                                  // Chrome: the natural Google male voice
+    || inOrder(['daniel','arthur','oliver','george','thomas'], /en[-_]GB/i)           // Safari/macOS: best native en-GB male
+    || inOrder(['aaron','fred','alex','reed','tom','eric'], /^en/i)                   // best en male (any locale)
+    || (voices.find(v => /\bmale\b/i.test(v.name) && /^en/i.test(v.lang)))            // any en voice labeled male
+    || rankedBest();                                                                  // ranked (male-leaning) fallback
 }
 if ('speechSynthesis' in window){ refreshVoices(); window.speechSynthesis.onvoiceschanged = refreshVoices; }
 
@@ -563,11 +569,11 @@ function updateMembranePhysics(time, dt){
   if (time >= nextImpulseAt){
     const active = speaking || listening || thinking || drive > 0.08;
     if (active || Math.random() < 0.7){
-      const sweepRaw = time * 0.055 + 0.17 * Math.sin(time * 0.37) + Math.random() * 0.12;
+      const sweepRaw = time * 0.055 + 0.17 * Math.sin(time * 0.37) + Math.random() * 0.08;
       const sweep = sweepRaw - Math.floor(sweepRaw);
       const center = Math.floor(sweep * PHYS_SEGMENTS);
-      const strength = (0.030 + drive * 0.155) * (speaking ? 1.12 : 1.0) * (thinking ? 0.7 : 1.0);
-      const spread = thinking ? (0.7 + Math.random() * 0.35) : (1.05 + drive * 1.35 + Math.random() * 0.45);
+      const strength = (0.022 + drive * 0.155) * (speaking ? 1.12 : 1.0) * (thinking ? 0.7 : 1.0);
+      const spread = thinking ? (0.7 + Math.random() * 0.35) : (1.05 + drive * 1.35 + Math.random() * 0.28);
       addMembraneImpulse(center, strength, spread);
     }
     const baseGap = thinking ? 0.07 + Math.random() * 0.10
