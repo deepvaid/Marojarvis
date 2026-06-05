@@ -7,14 +7,24 @@
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#ffffff; --ink:#1c1f24; --ink-soft:#2b2f36; --dim:#6f7680; --dimmer:#aab0b8;
+    --bg:#ffffff; --ink:#1c1f24; --ink-soft:#2b2f36; --dim:#5f6772; --dimmer:#aab0b8;
     --line:rgba(24,27,33,0.12); --accent:#1877f2;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
-  html{ height:100%; scroll-behavior:smooth; }
+  html{ height:100%; scroll-behavior:smooth; scroll-padding-top:88px; }
+
+  /* skip link — visible only on keyboard focus */
+  .skip-link{ position:fixed; top:10px; left:10px; z-index:60; transform:translateY(-150%);
+    background:var(--ink); color:#fff; padding:12px 18px; border-radius:8px; font-weight:600; font-size:15px;
+    text-decoration:none; transition:transform .2s; }
+  .skip-link:focus{ transform:translateY(0); }
+  main:focus{ outline:none; }
+
+  /* consistent keyboard focus indicator */
+  :where(a,button,[tabindex]):focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
   body{ background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif;
     -webkit-font-smoothing:antialiased; overflow-x:hidden; }
 
@@ -28,10 +38,27 @@
   .nav-left{ display:flex; align-items:center; gap:clamp(22px,3vw,44px); }
   .wordmark{ font-weight:800; font-size:22px; line-height:1; letter-spacing:0.01em; color:var(--ink); text-decoration:none; cursor:pointer; }
   .nav-links{ display:flex; align-items:center; gap:clamp(16px,2vw,30px); }
-  .nav-links a{ display:inline-flex; align-items:center; gap:5px; color:var(--ink); text-decoration:none;
+  .nav-links a, .nav-links .navlink{ display:inline-flex; align-items:center; gap:5px; color:var(--ink); text-decoration:none;
     font-size:15px; font-weight:500; transition:color .18s; cursor:pointer; }
-  .nav-links a:hover{ color:var(--accent); }
+  .nav-links .navlink{ background:none; border:0; padding:0; font-family:inherit; }
+  .nav-links a:hover, .nav-links .navlink:hover{ color:var(--accent); }
   .nav-links svg{ width:11px; height:11px; opacity:.6; }
+  /* hamburger toggle (mobile only) */
+  .nav-toggle{ display:none; width:44px; height:44px; align-items:center; justify-content:center;
+    background:none; border:0; cursor:pointer; color:var(--ink); border-radius:8px; }
+  .nav-toggle svg{ width:24px; height:24px; }
+  /* mobile menu panel */
+  .mobile-menu{ position:fixed; top:76px; left:0; right:0; z-index:19; background:#fff;
+    border-bottom:1px solid var(--line); box-shadow:0 18px 40px -24px rgba(24,27,33,0.35);
+    display:flex; flex-direction:column; padding:12px clamp(22px,4vw,48px) 22px; gap:2px; }
+  .mobile-menu[hidden]{ display:none; }
+  .mobile-menu .m-item{ display:flex; align-items:center; justify-content:space-between; width:100%;
+    background:none; border:0; font-family:inherit; text-align:left; cursor:pointer;
+    color:var(--ink); font-size:17px; font-weight:500; padding:15px 4px; text-decoration:none;
+    border-bottom:1px solid var(--line); }
+  .mobile-menu .m-item:last-of-type{ border-bottom:0; }
+  .mobile-menu .m-cta{ margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+  .mobile-menu .m-cta .btn{ width:100%; }
   .nav-right{ display:flex; align-items:center; gap:12px; }
   .btn{ font-family:'Inter',sans-serif; font-size:15px; font-weight:600; cursor:pointer; text-decoration:none; white-space:nowrap;
     border-radius:6px; padding:13px 22px; border:1px solid transparent; transition:background .18s, border-color .18s, color .18s, transform .1s; display:inline-flex; align-items:center; justify-content:center; }
@@ -55,7 +82,7 @@
   .hero-inner > *{ pointer-events:auto; }
   .hero-left{ max-width:min(58vw,820px); }
   .hero-left h1{ font-size:clamp(32px,4.3vw,62px); font-weight:400; line-height:1.02; letter-spacing:-0.03em; }
-  .cta-row{ display:flex; gap:14px; margin-top:clamp(28px,4vh,48px); }
+  .cta-row{ display:flex; flex-wrap:wrap; gap:14px; margin-top:clamp(28px,4vh,48px); }
   .cta-row .btn{ padding:16px 30px; font-size:16px; }
   .hero-right{ max-width:min(30vw,340px); display:flex; flex-direction:column; gap:18px; align-self:center; }
   .hero-right p{ font-size:clamp(15px,1.2vw,18px); line-height:1.6; color:var(--ink-soft); }
@@ -64,7 +91,7 @@
   /* shared section bits */
   .section{ position:relative; z-index:1; background:var(--bg); padding:clamp(72px,10vh,120px) 0; }
   .eyebrow{ font-size:13px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:var(--accent); }
-  .sec-title{ font-size:clamp(32px,4.4vw,48px); font-weight:500; line-height:1.08; letter-spacing:-0.02em; color:var(--ink); margin-top:18px; }
+  .sec-title{ font-size:clamp(32px,4.4vw,48px); font-weight:400; line-height:1.08; letter-spacing:-0.02em; color:var(--ink); margin-top:18px; }
   .sec-sub{ font-size:clamp(15px,1.3vw,18px); color:var(--dim); margin-top:18px; max-width:620px; line-height:1.5; }
 
   /* logo strip */
@@ -81,6 +108,9 @@
   .marquee-track .lg:hover{ opacity:1; }
   @keyframes logoscroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
   @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *,*::before,*::after{ animation-duration:.001ms!important; animation-iteration-count:1!important;
+      transition-duration:.001ms!important; scroll-behavior:auto!important; }
     .marquee{ -webkit-mask-image:none; mask-image:none; }
     .marquee-track{ animation:none; flex-wrap:wrap; justify-content:center; width:100%; gap:clamp(28px,4vw,56px); }
   }
@@ -111,24 +141,85 @@
   .hiw-grid{ display:grid; grid-template-columns:minmax(340px,420px) 1fr; gap:clamp(40px,5vw,80px); margin-top:clamp(40px,5vh,56px); align-items:start; }
   .hiw-visual img{ width:100%; border-radius:16px; display:block; }
 
-  /* who we're built for */
-  .icp-grid{ display:grid; grid-template-columns:1.9fr 1fr; gap:0; margin-top:clamp(40px,5vh,56px);
-    border-radius:16px; overflow:hidden; aspect-ratio:1920/708; }
-  .icp-grid img{ width:100%; height:100%; object-fit:cover; display:block; }
+  /* who we're built for — expanding image accordion */
+  .icp-accordion{ display:flex; gap:6px; margin-top:clamp(40px,5vh,56px);
+    height:clamp(440px,46vw,580px); border-radius:16px; overflow:hidden; }
+  .icp-panel{ position:relative; flex:1 1 0%; min-width:0; overflow:hidden; cursor:pointer;
+    border:0; margin:0; padding:0; font-family:inherit; text-align:left; color:#fff; border-radius:14px;
+    background:#1c1f24 var(--img) center/cover no-repeat; outline:none; isolation:isolate;
+    transition:flex-grow .55s cubic-bezier(.22,1,.36,1); }
+  .icp-panel.is-active{ flex-grow:9; }
+  .icp-panel::before{ content:""; position:absolute; inset:0; z-index:0;
+    background:linear-gradient(180deg, rgba(0,0,0,0.34), rgba(0,0,0,0.26) 50%, rgba(0,0,0,0.60));
+    transition:background .4s; }
+  .icp-panel:focus-visible{ box-shadow:inset 0 0 0 2px var(--accent); }
+  /* collapsed: vertical label */
+  .icp-tab{ position:absolute; z-index:1; bottom:26px; left:50%; transform:translateX(-50%) rotate(180deg);
+    writing-mode:vertical-rl; white-space:nowrap; font-size:clamp(14px,1vw,17px); font-weight:500;
+    letter-spacing:0.01em; color:#fff; transition:opacity .25s; }
+  .icp-panel.is-active .icp-tab{ opacity:0; }
+  /* expanded content */
+  .icp-content{ position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; justify-content:space-between;
+    padding:clamp(28px,3vw,52px); opacity:0; visibility:hidden; transition:opacity .4s .08s, visibility 0s .48s; }
+  .icp-panel.is-active .icp-content{ opacity:1; visibility:visible; transition:opacity .45s .12s, visibility 0s; }
+  .icp-top{ display:flex; flex-direction:column; gap:14px; max-width:460px; }
+  .icp-name{ font-size:clamp(24px,2vw,32px); font-weight:500; line-height:1.1; letter-spacing:-0.03em; white-space:nowrap; }
+  .icp-desc{ font-size:clamp(15px,1.2vw,18px); font-weight:500; line-height:1.45; letter-spacing:-0.02em; max-width:340px; }
+  .icp-more{ font-size:clamp(16px,1.3vw,20px); font-weight:600; letter-spacing:-0.02em; }
+  .icp-bottom{ display:flex; flex-direction:column; gap:clamp(16px,1.8vw,26px); }
+  .icp-rev{ font-size:clamp(22px,1.9vw,32px); font-weight:500; line-height:1.1; letter-spacing:-0.03em; white-space:nowrap; }
+  .icp-rule{ height:1px; width:100%; max-width:1023px; background:rgba(255,255,255,0.42); }
+  .icp-logos-row{ display:flex; align-items:center; gap:clamp(24px,2.8vw,48px); align-self:flex-start; }
+  .icp-logo-item{ height:clamp(24px,2.4vw,36px); width:auto; max-width:160px; object-fit:contain;
+    mix-blend-mode:screen; opacity:.9; flex-shrink:0; }
 
-  /* customer stories */
+  /* customer stories — autoplay carousel */
   .stories .head{ text-align:center; }
   .stories .sec-title{ margin-left:auto; margin-right:auto; }
-  .stories-grid{ display:flex; gap:20px; align-items:stretch; margin-top:clamp(40px,5vh,56px); }
-  .stories-grid > div{ border-radius:16px; overflow:hidden; }
-  .story-main{ flex:2.4; }
-  .story-side{ flex:1; }
-  .story-main img{ width:100%; height:auto; display:block; }
-  .story-side img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .story-carousel{ margin-top:clamp(40px,5vh,56px); }
+  .story-viewport{ overflow:hidden; border-radius:16px; }
+  .story-track{ display:flex; }
+  .story-track.anim{ transition:transform .6s cubic-bezier(.22,1,.36,1); }
+  .story-card{ flex:0 0 100%; display:grid; grid-template-columns:2fr 1fr; background:#000; aspect-ratio:1454/620; }
+  .story-photo{ position:relative; background:var(--img) center/cover no-repeat;
+    padding:clamp(28px,3vw,54px); display:flex; flex-direction:column; gap:clamp(16px,2vw,28px); isolation:isolate; }
+  .story-photo::before{ content:""; position:absolute; inset:0; z-index:0; background:rgba(0,0,0,0.20); }
+  .story-photo > *{ position:relative; z-index:1; }
+  .story-brand{ height:clamp(40px,4.6vw,64px); width:auto; align-self:flex-start; }
+  .story-metric{ font-size:clamp(24px,2.6vw,36px); font-weight:500; line-height:1.1; letter-spacing:-0.03em; color:#fff; max-width:320px; }
+  .story-quote{ background:#000; color:#fff; padding:clamp(28px,3vw,54px); display:flex; flex-direction:column; }
+  .story-q{ font-style:italic; font-size:clamp(19px,2.4vw,36px); font-weight:400; line-height:1.12; letter-spacing:-0.03em; }
+  .story-by{ font-size:clamp(15px,1.4vw,20px); margin-top:clamp(16px,2vw,26px); color:#cfcfcf; line-height:1.45; }
+  .story-link{ margin-top:auto; padding-top:24px; font-size:clamp(16px,1.6vw,24px); font-weight:600;
+    color:#fff; text-decoration:none; letter-spacing:-0.02em; transition:color .18s; }
+  .story-link:hover{ color:#9fc6ff; }
+  /* light-photo cards: dark logo + metric for contrast */
+  .story-card.on-light .story-photo::before{ background:rgba(0,0,0,0.04); }
+  .story-card.on-light .story-metric{ color:var(--ink); }
+  .story-card.on-light .story-brand{ height:clamp(26px,2.8vw,36px); filter:brightness(0); }
+  .story-controls{ display:flex; align-items:center; justify-content:center; gap:18px; margin-top:26px; }
+  .story-arrow{ width:46px; height:46px; border-radius:50%; border:1px solid var(--line); background:#fff;
+    color:var(--ink); cursor:pointer; display:grid; place-items:center; transition:border-color .2s, color .2s; }
+  .story-arrow svg{ width:18px; height:18px; }
+  .story-arrow:hover{ border-color:var(--ink); color:var(--accent); }
+  .story-dots{ display:flex; align-items:center; gap:4px; }
+  /* 24px transparent hit-area; visual pill drawn via ::before (touch-target ≥24px) */
+  .story-dot{ width:24px; height:24px; padding:0; border:0; background:none; cursor:pointer;
+    display:grid; place-items:center; border-radius:50%; }
+  .story-dot::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--line);
+    transition:width .25s cubic-bezier(.22,1,.36,1), background .25s; }
+  .story-dot.is-on::before{ width:26px; border-radius:4px; background:var(--ink); }
+  .story-play{ width:46px; height:46px; border-radius:50%; border:1px solid var(--line); background:#fff;
+    color:var(--ink); cursor:pointer; display:grid; place-items:center; transition:border-color .2s, color .2s; }
+  .story-play svg{ width:16px; height:16px; }
+  .story-play:hover{ border-color:var(--ink); color:var(--accent); }
+  .story-play .icon-play{ display:none; }
+  .story-play.is-paused .icon-pause{ display:none; }
+  .story-play.is-paused .icon-play{ display:block; }
 
   /* cta */
   .cta-section{ position:relative; z-index:1; background:transparent; padding:clamp(80px,14vh,160px) 0; text-align:center; }
-  .cta-title{ font-size:clamp(34px,5vw,56px); font-weight:500; line-height:1.05; letter-spacing:-0.02em; max-width:900px; margin:0 auto; }
+  .cta-title{ font-size:clamp(34px,5vw,56px); font-weight:400; line-height:1.05; letter-spacing:-0.02em; max-width:900px; margin:0 auto; }
   .cta-section .cta-row{ justify-content:center; }
 
   /* footer */
@@ -141,10 +232,10 @@
     color:#1c1d1f; white-space:nowrap; padding:clamp(48px,8vh,90px) clamp(22px,5vw,48px) clamp(24px,4vh,44px); }
 
   /* scroll-reveal entrance motion (html.reveal-on set pre-paint; reduced-motion skips it) */
-  html.reveal-on :is(.logos-row,.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-grid,.story-main,.story-side,.cta-title){
+  html.reveal-on :is(.logos-row,.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-accordion,.story-carousel,.cta-title){
     opacity:0; transform:translateY(18px);
     transition:opacity .6s cubic-bezier(.22,1,.36,1), transform .6s cubic-bezier(.22,1,.36,1); transition-delay:var(--d,0s); }
-  html.reveal-on :is(.logos-row,.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-grid,.story-main,.story-side,.cta-title).in{
+  html.reveal-on :is(.logos-row,.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-accordion,.story-carousel,.cta-title).in{
     opacity:1; transform:none; }
 
   /* stats dividers */
@@ -176,16 +267,32 @@
   }
   @media (max-width:880px){
     .nav-links{ display:none; }
+    .nav-toggle{ display:inline-flex; }
     .hero{ flex-direction:column; justify-content:center; text-align:left; align-items:flex-start; }
     .hero-left{ max-width:90vw; }
     .hero-right{ display:none; }
-    .icp-grid{ grid-template-columns:1fr; aspect-ratio:auto; }
-    .stories-grid{ flex-direction:column; }
+    /* accordion → vertical stack on mobile (tap/keyboard expands a row's height) */
+    .icp-accordion{ flex-direction:column; height:auto; }
+    .icp-panel{ flex:none; height:84px; transition:height .5s cubic-bezier(.22,1,.36,1); }
+    .icp-panel.is-active{ height:clamp(380px,82vw,460px); }
+    .icp-tab{ writing-mode:horizontal-tb; transform:none; inset:auto auto 50%; left:24px; translate:0 50%; font-size:18px; }
+    .icp-content{ padding:24px; }
+    .icp-name,.icp-rev{ white-space:normal; }
+    /* carousel card → stacked photo over quote */
+    .story-card{ grid-template-columns:minmax(0,1fr); aspect-ratio:auto; min-width:0; }
+    .story-photo{ aspect-ratio:16/10; min-width:0; }
+    .story-quote{ min-width:0; }
   }
   @media (max-width:600px){
     .why-grid{ grid-template-columns:1fr; }
     .why-card{ min-height:auto; }
     .footer-cols{ grid-template-columns:repeat(2,1fr); }
+  }
+  @media (max-width:480px){
+    /* keep the nav bar from overflowing: Log in lives in the hamburger menu */
+    .nav-right .btn.outline{ display:none; }
+    .nav-right .btn{ padding:11px 16px; font-size:14px; }
+    .nav-left{ gap:14px; }
   }
 </style>
 <script>
@@ -195,17 +302,33 @@
 </head>
 <body>
 
+  <a class="skip-link" href="#main">Skip to content</a>
+
   <nav>
     <div class="nav-left">
       <a class="wordmark" href="landing.html">MAROPOST</a>
       <div class="nav-links">
-        <a>Products <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></a>
-        <a>Customers <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></a>
-        <a>Pricing</a>
-        <a>Resources <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></a>
+        <button class="navlink" type="button">Products <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="navlink" type="button">Customers <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="navlink" type="button">Pricing</button>
+        <button class="navlink" type="button">Resources <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
       </div>
     </div>
     <div class="nav-right">
+      <a class="btn outline" href="login.html">Log in</a>
+      <a class="btn dark" href="login.html">Book a demo</a>
+      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <nav id="mobileMenu" class="mobile-menu" hidden aria-label="Mobile navigation">
+    <button class="m-item" type="button">Products</button>
+    <button class="m-item" type="button">Customers</button>
+    <button class="m-item" type="button">Pricing</button>
+    <button class="m-item" type="button">Resources</button>
+    <div class="m-cta">
       <a class="btn outline" href="login.html">Log in</a>
       <a class="btn dark" href="login.html">Book a demo</a>
     </div>
@@ -217,7 +340,9 @@
     </div>
   </div>
 
-  <main class="hero">
+  <main id="main" tabindex="-1">
+
+  <section class="hero" aria-label="Introduction">
     <div class="hero-inner">
       <div class="hero-left">
         <h1>Built for commerce.<br>Powered by AI.</h1>
@@ -230,7 +355,7 @@
         <p class="lead">Maropost replaces fragmented systems so teams can move faster and scale smarter.</p>
       </div>
     </div>
-  </main>
+  </section>
 
   <!-- customer logos -->
   <section class="logos" aria-label="Trusted by">
@@ -312,27 +437,27 @@
       <div class="hiw-grid">
         <div class="cloud-list">
           <div class="cloud open">
-            <button class="cloud-head" type="button" aria-expanded="true"><h3>Commerce Cloud</h3><svg class="cloud-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="cloud-head" type="button" aria-expanded="true"><h3>Commerce Cloud</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
             <div class="cloud-body"><p class="cloud-desc">Sell everywhere without the chaos. Manage storefronts, orders, and fulfillment from one place so your team moves faster.</p><a class="cloud-link" href="#">Learn more →</a></div>
           </div>
           <div class="cloud">
-            <button class="cloud-head" type="button" aria-expanded="false"><h3>Marketing Cloud</h3><svg class="cloud-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="cloud-head" type="button" aria-expanded="false"><h3>Marketing Cloud</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
             <div class="cloud-body"><p class="cloud-desc">Reach the right customers with campaigns, automation, and audiences powered by your unified commerce data.</p><a class="cloud-link" href="#">Learn more →</a></div>
           </div>
           <div class="cloud">
-            <button class="cloud-head" type="button" aria-expanded="false"><h3>Retail Cloud</h3><svg class="cloud-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="cloud-head" type="button" aria-expanded="false"><h3>Retail Cloud</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
             <div class="cloud-body"><p class="cloud-desc">Unify in-store and online with POS, inventory, and customer profiles that stay in sync across every location.</p><a class="cloud-link" href="#">Learn more →</a></div>
           </div>
           <div class="cloud">
-            <button class="cloud-head" type="button" aria-expanded="false"><h3>Merchandising Cloud</h3><svg class="cloud-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="cloud-head" type="button" aria-expanded="false"><h3>Merchandising Cloud</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
             <div class="cloud-body"><p class="cloud-desc">Manage catalogs, pricing, and product data at scale with rich attributes and effortless bulk control.</p><a class="cloud-link" href="#">Learn more →</a></div>
           </div>
           <div class="cloud">
-            <button class="cloud-head" type="button" aria-expanded="false"><h3>Service Cloud</h3><svg class="cloud-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="cloud-head" type="button" aria-expanded="false"><h3>Service Cloud</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
             <div class="cloud-body"><p class="cloud-desc">Resolve issues faster with a connected support desk that sees every order, customer, and interaction.</p><a class="cloud-link" href="#">Learn more →</a></div>
           </div>
           <div class="cloud">
-            <button class="cloud-head" type="button" aria-expanded="false"><h3>Da Vinci AI</h3><svg class="cloud-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="cloud-head" type="button" aria-expanded="false"><h3>Da Vinci AI</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
             <div class="cloud-body"><p class="cloud-desc">Run the whole platform by voice or text—Da Vinci turns intents into actions across commerce and marketing.</p><a class="cloud-link" href="#">Learn more →</a></div>
           </div>
         </div>
@@ -349,9 +474,121 @@
       <p class="eyebrow">Who we're built for</p>
       <h2 class="sec-title">For retailers and ecommerce brands building for what's next</h2>
       <p class="sec-sub">Trusted across ecommerce, retail, B2B, and beyond—built for scale and control</p>
-      <div class="icp-grid">
-        <img src="assets/icp-automotive.png" alt="Automotive">
-        <img src="assets/icp-industries.png" alt="Industries we serve">
+      <div class="icp-accordion" role="group" aria-label="Industries we serve">
+        <button class="icp-panel is-active" type="button" aria-expanded="true" aria-label="Automotive. Drive parts and service revenue, across tens of thousands of SKUs." style="--img:url('assets/icp/automotive.jpg')">
+          <span class="icp-tab" aria-hidden="true">Automotive</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">Automotive</span>
+              <span class="icp-desc">Drive parts and service revenue, across tens of thousands of SKUs.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_1.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_2.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_3.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+        <button class="icp-panel" type="button" aria-expanded="false" aria-label="eCommerce. Grow faster, personalize every touchpoint, convert more shoppers." style="--img:url('assets/icp/ecommerce.jpg')">
+          <span class="icp-tab" aria-hidden="true">eCommerce</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">eCommerce</span>
+              <span class="icp-desc">Grow faster, personalize every touchpoint, convert more shoppers.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_1.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_2.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_3.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+        <button class="icp-panel" type="button" aria-expanded="false" aria-label="Travel and Tourism. Personalization, automation, conversion across every customer touchpoint." style="--img:url('assets/icp/travel.jpg')">
+          <span class="icp-tab" aria-hidden="true">Travel &amp; Tourism</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">Travel &amp; Tourism</span>
+              <span class="icp-desc">Personalization, automation, conversion across every customer touchpoint.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/travel_hardrock.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/travel_treasure.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/travel_california.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+        <button class="icp-panel" type="button" aria-expanded="false" aria-label="B2B and Wholesale. Increase repeat orders, streamline complex buying and relationships." style="--img:url('assets/icp/b2b.jpg')">
+          <span class="icp-tab" aria-hidden="true">B2B &amp; Wholesale</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">B2B &amp; Wholesale</span>
+              <span class="icp-desc">Increase repeat orders, streamline complex buying and relationships.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/b2b_1.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/b2b_2.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/b2b_3.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+        <button class="icp-panel" type="button" aria-expanded="false" aria-label="Multi-Channel Ecommerce. Sell everywhere, unify channels, inventory, and messaging." style="--img:url('assets/icp/multichannel.jpg')">
+          <span class="icp-tab" aria-hidden="true">Multi-Channel Ecommerce</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">Multi-Channel Ecommerce</span>
+              <span class="icp-desc">Sell everywhere, unify channels, inventory, and messaging.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/multichannel_1.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/multichannel_2.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/multichannel_3.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+        <button class="icp-panel" type="button" aria-expanded="false" aria-label="Sports and Recreation. Drive bookings, create seamless journeys from discovery to reservation." style="--img:url('assets/icp/sports.jpg')">
+          <span class="icp-tab" aria-hidden="true">Sports &amp; Recreation</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">Sports &amp; Recreation</span>
+              <span class="icp-desc">Drive bookings, create seamless journeys from discovery to reservation.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/sports_1.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/sports_2.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/sports_3.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
       </div>
     </div>
   </section>
@@ -363,12 +600,52 @@
         <p class="eyebrow">Customer stories</p>
         <h2 class="sec-title">Why businesses choose Maropost</h2>
       </div>
-      <div class="stories-grid">
-        <div class="story-main">
-          <img src="assets/customer-story-main.png" alt="Altapac — 72,000+ SKUs &amp; 200% growth. “Managing product data used to take days. Now it takes minutes.” — Tom Lacey, GM at Altepec">
+      <div class="story-carousel">
+        <div class="story-viewport" aria-roledescription="carousel" aria-label="Customer stories">
+          <div class="story-track" id="storyTrack">
+            <article class="story-card" role="group" aria-roledescription="slide" aria-label="1 of 3">
+              <div class="story-photo" style="--img:url('assets/stories/altapac.jpg')">
+                <img class="story-brand" src="assets/stories/altapac-logo.png" alt="Altapac">
+                <p class="story-metric">72,000+ SKUs &amp; 200% growth</p>
+              </div>
+              <div class="story-quote">
+                <p class="story-q">“Managing product data used to take days. Now it takes minutes.”</p>
+                <p class="story-by">Tom Lacey, GM at Altepec</p>
+                <a class="story-link" href="#">Read the story →</a>
+              </div>
+            </article>
+            <article class="story-card on-light" role="group" aria-roledescription="slide" aria-label="2 of 3">
+              <div class="story-photo" style="--img:url('assets/stories/couch.jpg')">
+                <img class="story-brand" src="logos/iconbydesign.svg" alt="Icon by Design">
+                <p class="story-metric">+17 increase in conversion</p>
+              </div>
+              <div class="story-quote">
+                <p class="story-q">“Support has been excellent and AI has really simplified ongoing maintenance.”</p>
+                <p class="story-by">David Light, CEO at Icon by Design</p>
+                <a class="story-link" href="#">Read the story →</a>
+              </div>
+            </article>
+            <article class="story-card on-light" role="group" aria-roledescription="slide" aria-label="3 of 3">
+              <div class="story-photo" style="--img:url('assets/stories/couch.jpg')">
+                <img class="story-brand" src="logos/iconbydesign.svg" alt="Icon by Design">
+                <p class="story-metric">20% in savings annually</p>
+              </div>
+              <div class="story-quote">
+                <p class="story-q">“With visibility across all our stores, we’re confidently never over or understocked.”</p>
+                <p class="story-by">Grant Mayo, Founder &amp; CEO of Nutrition Warehouse</p>
+                <a class="story-link" href="#">Read the story →</a>
+              </div>
+            </article>
+          </div>
         </div>
-        <div class="story-side">
-          <img src="assets/customer-story-side.png" alt="Customer story">
+        <div class="story-controls">
+          <button class="story-play" type="button" aria-label="Pause automatic slideshow">
+            <svg class="icon-pause" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            <svg class="icon-play" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="story-arrow" type="button" data-dir="-1" aria-label="Previous story"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="story-dots" id="storyDots"></div>
+          <button class="story-arrow" type="button" data-dir="1" aria-label="Next story"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
         </div>
       </div>
     </div>
@@ -386,32 +663,34 @@
     </div>
   </section>
 
+  </main>
+
   <!-- footer -->
   <footer class="footer">
     <div class="wrap footer-cols">
       <div class="fcol">
         <h4>Products</h4>
-        <a>Commerce Cloud</a><a>Retail Cloud</a><a>Marketing Cloud</a><a>Merchandising Cloud</a><a>Service Cloud</a><a>Integrations</a><a>Unified Commerce</a>
+        <a href="#">Commerce Cloud</a><a href="#">Retail Cloud</a><a href="#">Marketing Cloud</a><a href="#">Merchandising Cloud</a><a href="#">Service Cloud</a><a href="#">Integrations</a><a href="#">Unified Commerce</a>
       </div>
       <div class="fcol">
         <h4>Solutions</h4>
-        <a>Automotive</a><a>B2B &amp; Wholesale</a><a>Ecommerce</a><a>Electronics</a><a>Gifting</a><a>Media &amp; Entertainment</a><a>Multi-Channel Ecommerce</a><a>Sports &amp; Recreation</a><a>Travel &amp; Tourism</a>
+        <a href="#">Automotive</a><a href="#">B2B &amp; Wholesale</a><a href="#">Ecommerce</a><a href="#">Electronics</a><a href="#">Gifting</a><a href="#">Media &amp; Entertainment</a><a href="#">Multi-Channel Ecommerce</a><a href="#">Sports &amp; Recreation</a><a href="#">Travel &amp; Tourism</a>
       </div>
       <div class="fcol">
         <h4>Resources</h4>
-        <a>Galaxy community</a><a>Live sales powered by Maropost</a><a>Customer success</a><a>Service partners</a><a>Trust</a><a>CCPA</a><a>DMCA</a><a>Security</a><a>Compliance</a><a>API</a>
+        <a href="#">Galaxy community</a><a href="#">Live sales powered by Maropost</a><a href="#">Customer success</a><a href="#">Service partners</a><a href="#">Trust</a><a href="#">CCPA</a><a href="#">DMCA</a><a href="#">Security</a><a href="#">Compliance</a><a href="#">API</a>
       </div>
       <div class="fcol">
         <h4>System status</h4>
-        <a>Marketing Cloud status</a><a>Merchandising Cloud status</a>
+        <a href="#">Marketing Cloud status</a><a href="#">Merchandising Cloud status</a>
       </div>
       <div class="fcol">
         <h4>Partners</h4>
-        <a>Program overview</a>
+        <a href="#">Program overview</a>
       </div>
       <div class="fcol">
         <h4>Company</h4>
-        <a>Leadership Team</a><a>Careers</a><a>Press</a><a>Contact us</a><a>Maropost Ventures</a><a>MaropostCARES</a>
+        <a href="#">Leadership Team</a><a href="#">Careers</a><a href="#">Press</a><a href="#">Contact us</a><a href="#">Maropost Ventures</a><a href="#">MaropostCARES</a>
       </div>
     </div>
     <div class="footer-watermark">This is Unified Commerce.</div>
@@ -472,13 +751,42 @@
   (function(){
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    /* --- duplicate logo marquee for a seamless loop --- */
+    /* --- duplicate logo marquee for a seamless loop (clones hidden from assistive tech) --- */
     const logoTrack = document.getElementById('logoTrack');
-    if (logoTrack && !reduce) logoTrack.innerHTML += logoTrack.innerHTML;
+    if (logoTrack && !reduce){
+      [...logoTrack.children].forEach(img => {
+        const clone = img.cloneNode(true);
+        clone.setAttribute('aria-hidden', 'true');
+        clone.alt = '';
+        logoTrack.appendChild(clone);
+      });
+    }
+
+    /* --- mobile menu (hamburger disclosure) --- */
+    const navToggle = document.querySelector('.nav-toggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (navToggle && mobileMenu){
+      const setMenu = (open) => {
+        mobileMenu.hidden = !open;
+        navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        if (open){ const first = mobileMenu.querySelector('button, a'); if (first) first.focus(); }
+      };
+      navToggle.addEventListener('click', () => setMenu(mobileMenu.hidden));
+      mobileMenu.querySelectorAll('.m-item, a').forEach(el =>
+        el.addEventListener('click', () => { setMenu(false); navToggle.focus(); }));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !mobileMenu.hidden){ setMenu(false); navToggle.focus(); }
+      });
+      document.addEventListener('click', (e) => {
+        if (!mobileMenu.hidden && !mobileMenu.contains(e.target) && !navToggle.contains(e.target)) setMenu(false);
+      });
+      window.matchMedia('(min-width:881px)').addEventListener('change', (m) => { if (m.matches) setMenu(false); });
+    }
 
     /* --- scroll-reveal (staggered) --- */
     if (document.documentElement.classList.contains('reveal-on') && 'IntersectionObserver' in window){
-      const sel = '.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-grid,.story-main,.story-side,.cta-title';
+      const sel = '.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-accordion,.story-carousel,.cta-title';
       // stagger items within their groups
       document.querySelectorAll('.why-grid,.stats,.cloud-list,.stories-grid').forEach(group => {
         [...group.children].forEach((c,i)=> c.style.setProperty('--d', (i*0.08)+'s'));
@@ -499,6 +807,88 @@
         if (!open){ cloud.classList.add('open'); head.setAttribute('aria-expanded','true'); }
       });
     });
+
+    /* --- who we're built for: expanding image accordion (hover on desktop, click/focus everywhere) --- */
+    const acc = document.querySelector('.icp-accordion');
+    if (acc){
+      const panels = [...acc.querySelectorAll('.icp-panel')];
+      const fine = window.matchMedia('(pointer:fine)').matches;
+      const setActive = (i) => panels.forEach((p, idx) => {
+        const on = idx === i;
+        p.classList.toggle('is-active', on);
+        p.setAttribute('aria-expanded', on ? 'true' : 'false');
+      });
+      panels.forEach((p, i) => {
+        p.addEventListener('click', () => setActive(i));
+        p.addEventListener('focus', () => setActive(i));
+        if (fine) p.addEventListener('mouseenter', () => setActive(i));
+        p.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowRight' || e.key === 'ArrowDown'){ e.preventDefault(); panels[(i + 1) % panels.length].focus(); }
+          else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ e.preventDefault(); panels[(i - 1 + panels.length) % panels.length].focus(); }
+        });
+      });
+    }
+
+    /* --- customer stories: autoplay carousel --- */
+    const car = document.querySelector('.story-carousel');
+    if (car){
+      const track = car.querySelector('.story-track');
+      const cards = [...track.children];
+      const dotsWrap = car.querySelector('.story-dots');
+      const playBtn = car.querySelector('.story-play');
+      const n = cards.length;
+      let idx = 0, timer = null, userPaused = false;
+
+      // only the active slide is interactive / exposed to AT (off-screen slides leave the tab order)
+      const syncSlides = () => cards.forEach((c, ci) => {
+        const on = ci === idx;
+        c.inert = !on;
+        c.setAttribute('aria-hidden', on ? 'false' : 'true');
+      });
+      syncSlides();
+
+      cards.forEach((_, i) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'story-dot' + (i === 0 ? ' is-on' : '');
+        b.setAttribute('aria-label', 'Go to story ' + (i + 1));
+        if (i === 0) b.setAttribute('aria-current', 'true');
+        b.addEventListener('click', () => { go(i); restart(); });
+        dotsWrap.appendChild(b);
+      });
+      const dots = [...dotsWrap.children];
+
+      function go(i){
+        idx = (i + n) % n;
+        track.classList.add('anim');
+        track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+        dots.forEach((d, di) => { const on = di === idx; d.classList.toggle('is-on', on); on ? d.setAttribute('aria-current','true') : d.removeAttribute('aria-current'); });
+        syncSlides();
+      }
+      car.querySelectorAll('.story-arrow').forEach(a => {
+        a.addEventListener('click', () => { go(idx + Number(a.dataset.dir)); restart(); });
+      });
+
+      function start(){ if (!reduce && !userPaused && !timer) timer = setInterval(() => go(idx + 1), 6000); }
+      function stop(){ if (timer){ clearInterval(timer); timer = null; } }
+      function restart(){ stop(); start(); }
+
+      // persistent pause/play control (WCAG 2.2.2)
+      if (playBtn){
+        if (reduce){ playBtn.hidden = true; }
+        playBtn.addEventListener('click', () => {
+          userPaused = !userPaused;
+          playBtn.classList.toggle('is-paused', userPaused);
+          playBtn.setAttribute('aria-label', userPaused ? 'Play automatic slideshow' : 'Pause automatic slideshow');
+          userPaused ? stop() : start();
+        });
+      }
+
+      car.addEventListener('mouseenter', stop);
+      car.addEventListener('mouseleave', () => { if (!userPaused) start(); });
+      car.addEventListener('focusin', stop);
+      car.addEventListener('focusout', () => { if (!userPaused) start(); });
+      start();
+    }
 
     /* --- stats count-up --- */
     const impact = document.querySelector('.impact');
