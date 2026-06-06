@@ -77,16 +77,18 @@
   /* hero */
   .hero{ position:relative; z-index:1; height:100dvh; display:flex; align-items:center;
     justify-content:center; padding:0; pointer-events:none; }
-  .hero-inner{ width:100%; max-width:1320px; padding:0 clamp(22px,5vw,48px);
-    display:flex; align-items:center; justify-content:space-between; gap:24px; pointer-events:none; }
+  .hero-inner{ width:100%; max-width:clamp(400px,46vh,468px); margin:0 auto; padding:0 24px;
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    gap:clamp(16px,2.4vh,26px); pointer-events:none; }
   .hero-inner > *{ pointer-events:auto; }
-  .hero-left{ max-width:min(58vw,820px); }
-  .hero-left h1{ font-size:clamp(32px,4.3vw,62px); font-weight:400; line-height:1.02; letter-spacing:-0.03em; }
-  .cta-row{ display:flex; flex-wrap:wrap; gap:14px; margin-top:clamp(28px,4vh,48px); }
+  /* headline tracks the orb (orb diameter = 60vh), so it stays inside the ring on short viewports */
+  .hero-inner h1{ font-size:clamp(28px,4.6vh,44px); font-weight:400; line-height:1.05; letter-spacing:-0.03em; }
+  .hero .lead{ position:absolute; top:50%; translate:0 -50%;
+    left:calc(50% + 30vh + clamp(16px,2.5vw,40px));   /* just outside the ring's right edge */
+    right:clamp(20px,3vw,48px); max-width:300px; text-align:left;
+    font-size:clamp(15px,1.1vw,18px); line-height:1.6; color:var(--ink); font-weight:400; pointer-events:auto; }
+  .cta-row{ display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin-top:clamp(6px,1vh,12px); }
   .cta-row .btn{ padding:16px 30px; font-size:16px; }
-  .hero-right{ max-width:min(30vw,340px); display:flex; flex-direction:column; gap:18px; align-self:center; }
-  .hero-right p{ font-size:clamp(15px,1.2vw,18px); line-height:1.6; color:var(--ink-soft); }
-  .hero-right p.lead{ color:var(--ink); font-weight:400; }
 
   /* shared section bits */
   .section{ position:relative; z-index:1; background:var(--bg); padding:clamp(72px,10vh,120px) 0; }
@@ -268,9 +270,9 @@
   @media (max-width:880px){
     .nav-links{ display:none; }
     .nav-toggle{ display:inline-flex; }
-    .hero{ flex-direction:column; justify-content:center; text-align:left; align-items:flex-start; }
-    .hero-left{ max-width:90vw; }
-    .hero-right{ display:none; }
+    .hero-inner{ max-width:90vw; }
+    .hero-inner h1{ font-size:clamp(30px,8vw,44px); }
+    .hero .lead{ display:none; }
     /* accordion → vertical stack on mobile (tap/keyboard expands a row's height) */
     .icp-accordion{ flex-direction:column; height:auto; }
     .icp-panel{ flex:none; height:84px; transition:height .5s cubic-bezier(.22,1,.36,1); }
@@ -344,17 +346,13 @@
 
   <section class="hero" aria-label="Introduction">
     <div class="hero-inner">
-      <div class="hero-left">
-        <h1>Built for commerce.<br>Powered by AI.</h1>
-        <div class="cta-row">
-          <a class="btn dark" href="login.html#signup">Start free trial</a>
-          <a class="btn outline" href="login.html">Book a demo</a>
-        </div>
-      </div>
-      <div class="hero-right">
-        <p class="lead">Maropost replaces fragmented systems so teams can move faster and scale smarter.</p>
+      <h1>Built for commerce.<br>Powered by AI.</h1>
+      <div class="cta-row">
+        <a class="btn dark" href="login.html#signup">Start free trial</a>
+        <a class="btn outline" href="login.html">Book a demo</a>
       </div>
     </div>
+    <p class="lead">Maropost replaces fragmented systems so teams can move faster and scale smarter.</p>
   </section>
 
   <!-- customer logos -->
