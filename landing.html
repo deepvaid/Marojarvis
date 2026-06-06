@@ -47,6 +47,25 @@
   .nav-toggle{ display:none; width:44px; height:44px; align-items:center; justify-content:center;
     background:none; border:0; cursor:pointer; color:var(--ink); border-radius:8px; }
   .nav-toggle svg{ width:24px; height:24px; }
+
+  /* ---- Da Vinci swirl button — squircle, color + spin on hover ---- */
+  .gemini-btn{ position:relative; flex:0 0 auto; width:40px; height:40px; padding:8px;
+    display:flex; align-items:center; justify-content:center; border-radius:12px;
+    background:transparent; overflow:hidden; text-decoration:none; isolation:isolate;
+    -webkit-tap-highlight-color:transparent;
+    transition:transform .25s cubic-bezier(.22,1,.36,1), box-shadow .3s ease; }
+  .gemini-btn .state-layer{ position:absolute; inset:0; z-index:0; border-radius:inherit; pointer-events:none;
+    background:linear-gradient(125deg,#4f8ef5 0%,#7c5cff 45%,#9a5cff 72%,#5b44d6 100%);
+    background-size:200% 200%; opacity:0; transform:scale(.6);
+    transition:opacity .3s ease, transform .4s cubic-bezier(.34,1.56,.64,1); }
+  .gemini-icon{ position:relative; z-index:1; width:24px; height:24px; fill:var(--ink);
+    transform-box:fill-box; transform-origin:center; transition:fill .25s ease; }
+  .gemini-btn:hover{ box-shadow:0 6px 18px -6px rgba(92,68,214,.7); }
+  .gemini-btn:hover .state-layer{ opacity:1; transform:scale(1); animation:gem-shimmer 2.6s ease infinite; }
+  .gemini-btn:hover .gemini-icon{ fill:#fff; animation:swirl-spin 3s linear infinite; }
+  .gemini-btn:active{ transform:scale(.94); }
+  @keyframes gem-shimmer{ 0%,100%{ background-position:0% 50%; } 50%{ background-position:100% 50%; } }
+  @keyframes swirl-spin{ to{ transform:rotate(360deg); } }
   /* mobile menu panel */
   .mobile-menu{ position:fixed; top:76px; left:0; right:0; z-index:19; background:#fff;
     border-bottom:1px solid var(--line); box-shadow:0 18px 40px -24px rgba(24,27,33,0.35);
@@ -317,6 +336,12 @@
       </div>
     </div>
     <div class="nav-right">
+      <a class="gemini-btn" href="index.html" aria-label="Da Vinci AI" title="Try Da Vinci AI">
+        <span class="state-layer" aria-hidden="true"></span>
+        <svg class="gemini-icon" viewBox="0 0 111 111" width="24" height="24" aria-hidden="true" focusable="false">
+          <path d="M4.46652 67.1696C8.06967 65.7695 12.1255 67.5549 13.5261 71.1579C15.6916 76.7287 19.0242 81.9568 23.5388 86.4714C28.0534 90.986 33.2815 94.3186 38.8523 96.4841C42.4553 97.8847 44.2407 101.941 42.8405 105.544C41.4399 109.147 37.3833 110.933 33.78 109.533C26.4337 106.677 19.5532 102.285 13.6394 96.3708C7.72555 90.457 3.3329 83.5765 0.477266 76.2302C-0.92326 72.6269 0.863246 68.5703 4.46652 67.1696ZM96.4841 71.1579C97.8847 67.5549 101.941 65.7695 105.544 67.1696C109.147 68.5703 110.933 72.6269 109.533 76.2302C106.677 83.5765 102.285 90.457 96.3708 96.3708C90.457 102.285 83.5765 106.677 76.2302 109.533C72.6269 110.933 68.5703 109.147 67.1696 105.544C65.7695 101.941 67.5549 97.8847 71.1579 96.4841C76.7287 94.3186 81.9568 90.986 86.4714 86.4714C90.986 81.9568 94.3186 76.7288 96.4841 71.1579ZM55.0046 18.5056C55.7694 18.5056 56.4369 19.028 56.6237 19.7702C57.1944 22.0409 57.9468 24.2624 58.8728 26.4128C61.2936 32.0374 64.6154 36.9602 68.8327 41.1775C73.0523 45.3959 77.974 48.7176 83.5974 51.1384C85.7483 52.0641 87.9699 52.8165 90.2409 53.3874C90.9831 53.5742 91.5044 54.2399 91.5046 55.0046C91.5046 55.7694 90.9833 56.4369 90.24 56.6237C87.9693 57.1944 85.7478 57.9468 83.5974 58.8728C77.9728 61.2936 73.0512 64.6154 68.8327 68.8327C64.6154 73.0523 61.2936 77.974 58.8728 83.5974C57.9466 85.7482 57.194 87.9699 56.6228 90.2409C56.5323 90.6016 56.3239 90.9221 56.031 91.1511C55.738 91.38 55.3764 91.504 55.0046 91.5046C54.24 91.5044 53.5742 90.9832 53.3874 90.24C52.8164 87.9692 52.0638 85.7478 51.1374 83.5974C48.7177 77.9728 45.397 73.0512 41.1775 68.8327C36.959 64.6154 32.0374 61.2936 26.4128 58.8728C24.2623 57.9467 22.0409 57.1941 19.7702 56.6228C19.4096 56.5326 19.0892 56.3247 18.8601 56.032C18.6309 55.7392 18.5066 55.3783 18.5056 55.0066C18.5056 54.2417 19.028 53.5752 19.7702 53.3884C22.041 52.8174 24.2624 52.0648 26.4128 51.1384C32.0374 48.7187 36.9602 45.3969 41.1775 41.1784C45.3957 36.9613 48.7176 32.0391 51.1384 26.4148C52.0641 24.2643 52.8165 22.0427 53.3874 19.7722C53.4774 19.411 53.6852 19.0895 53.9782 18.8601C54.2712 18.6307 54.6326 18.5064 55.0046 18.5056ZM33.78 0.477265C37.3833 -0.923261 41.4399 0.863249 42.8405 4.46652C44.2407 8.06965 42.4553 12.1255 38.8523 13.5261C33.2814 15.6916 28.0534 19.0242 23.5388 23.5388C19.0242 28.0534 15.6916 33.2815 13.5261 38.8523C12.1255 42.4553 8.06964 44.2407 4.46652 42.8405C0.863249 41.4399 -0.923258 37.3833 0.477266 33.78C3.3329 26.4337 7.72555 19.5532 13.6394 13.6394C19.5532 7.72555 26.4337 3.3329 33.78 0.477265ZM67.1696 4.46652C68.5703 0.86325 72.6269 -0.923259 76.2302 0.477265C83.5765 3.3329 90.457 7.72555 96.3708 13.6394C102.285 19.5532 106.677 26.4337 109.533 33.78C110.933 37.3833 109.147 41.4399 105.544 42.8405C101.941 44.2407 97.8847 42.4553 96.4841 38.8523C94.3186 33.2815 90.986 28.0534 86.4714 23.5388C81.9568 19.0242 76.7287 15.6916 71.1579 13.5261C67.5549 12.1255 65.7695 8.06965 67.1696 4.46652Z"/>
+        </svg>
+      </a>
       <a class="btn outline" href="login.html">Log in</a>
       <a class="btn dark" href="login.html">Book a demo</a>
       <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
