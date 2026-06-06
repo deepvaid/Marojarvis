@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maropost — Unified Commerce</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#ffffff; --ink:#1c1f24; --ink-soft:#2b2f36; --dim:#5f6772; --dimmer:#aab0b8;
+    --line:rgba(24,27,33,0.12); --accent:#1877f2;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ height:100%; scroll-behavior:smooth; scroll-padding-top:88px; }
+
+  /* skip link — visible only on keyboard focus */
+  .skip-link{ position:fixed; top:10px; left:10px; z-index:60; transform:translateY(-150%);
+    background:var(--ink); color:#fff; padding:12px 18px; border-radius:8px; font-weight:600; font-size:15px;
+    text-decoration:none; transition:transform .2s; }
+  .skip-link:focus{ transform:translateY(0); }
+  main:focus{ outline:none; }
+
+  /* consistent keyboard focus indicator */
+  :where(a,button,[tabindex]):focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  body{ background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+
+  .wrap{ width:100%; max-width:1320px; margin:0 auto; padding:0 clamp(22px,5vw,48px); }
+
+  /* nav */
+  nav{ position:fixed; top:0; left:0; right:0; z-index:20; display:flex; align-items:center;
+    justify-content:space-between; padding:0 clamp(22px,4vw,48px); min-height:76px;
+    background:rgba(255,255,255,0.82); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+    border-bottom:1px solid rgba(24,27,33,0.05); }
+  .nav-left{ display:flex; align-items:center; gap:clamp(22px,3vw,44px); }
+  .wordmark{ font-weight:800; font-size:22px; line-height:1; letter-spacing:0.01em; color:var(--ink); text-decoration:none; cursor:pointer; }
+  .nav-links{ display:flex; align-items:center; gap:clamp(16px,2vw,30px); }
+  .nav-links a, .nav-links .navlink{ display:inline-flex; align-items:center; gap:5px; color:var(--ink); text-decoration:none;
+    font-size:15px; font-weight:500; transition:color .18s; cursor:pointer; }
+  .nav-links .navlink{ background:none; border:0; padding:0; font-family:inherit; }
+  .nav-links a:hover, .nav-links .navlink:hover{ color:var(--accent); }
+  .nav-links svg{ width:11px; height:11px; opacity:.6; }
+  /* hamburger toggle (mobile only) */
+  .nav-toggle{ display:none; width:44px; height:44px; align-items:center; justify-content:center;
+    background:none; border:0; cursor:pointer; color:var(--ink); border-radius:8px; }
+  .nav-toggle svg{ width:24px; height:24px; }
+
+  /* ---- Da Vinci FAB — white round button that becomes the gem on hover ---- */
+  .davinci-fab{ position:fixed; right:clamp(20px,3vw,34px); bottom:clamp(20px,3vw,34px); z-index:50;
+    width:60px; height:60px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:#0b0b0d; overflow:hidden; isolation:isolate; text-decoration:none;
+    box-shadow:0 8px 24px -6px rgba(24,27,33,.28), 0 2px 6px rgba(24,27,33,.14);
+    -webkit-tap-highlight-color:transparent;
+    transition:transform .25s cubic-bezier(.22,1,.36,1), box-shadow .3s ease; }
+  .davinci-fab .state-layer{ position:absolute; inset:0; z-index:0; border-radius:inherit; pointer-events:none;
+    background:linear-gradient(125deg,#4f8ef5 0%,#7c5cff 45%,#9a5cff 72%,#5b44d6 100%);
+    background-size:200% 200%; opacity:0; transition:opacity .3s ease; }
+  .davinci-fab .gemini-icon{ position:relative; z-index:1; width:28px; height:28px; fill:#fff;
+    transform-box:fill-box; transform-origin:center; transition:fill .25s ease; }
+  .davinci-fab:hover{ transform:translateY(-3px);
+    box-shadow:0 16px 32px -8px rgba(92,68,214,.5), 0 4px 12px rgba(24,27,33,.12); }
+  .davinci-fab:hover .state-layer{ opacity:1; animation:gem-shimmer 2.6s ease infinite; }
+  .davinci-fab:hover .gemini-icon{ fill:#fff; animation:swirl-spin 3s linear infinite; }
+  .davinci-fab:active{ transform:translateY(-1px) scale(.96); }
+  @keyframes gem-shimmer{ 0%,100%{ background-position:0% 50%; } 50%{ background-position:100% 50%; } }
+  @keyframes swirl-spin{ to{ transform:rotate(360deg); } }
+  /* mobile menu panel */
+  .mobile-menu{ position:fixed; top:76px; left:0; right:0; z-index:19; background:#fff;
+    border-bottom:1px solid var(--line); box-shadow:0 18px 40px -24px rgba(24,27,33,0.35);
+    display:flex; flex-direction:column; padding:12px clamp(22px,4vw,48px) 22px; gap:2px; }
+  .mobile-menu[hidden]{ display:none; }
+  .mobile-menu .m-item{ display:flex; align-items:center; justify-content:space-between; width:100%;
+    background:none; border:0; font-family:inherit; text-align:left; cursor:pointer;
+    color:var(--ink); font-size:17px; font-weight:500; padding:15px 4px; text-decoration:none;
+    border-bottom:1px solid var(--line); }
+  .mobile-menu .m-item:last-of-type{ border-bottom:0; }
+  .mobile-menu .m-cta{ margin-top:16px; display:flex; flex-direction:column; gap:10px; }
+  .mobile-menu .m-cta .btn{ width:100%; }
+  .nav-right{ display:flex; align-items:center; gap:12px; }
+  .btn{ font-family:'Inter',sans-serif; font-size:15px; font-weight:600; cursor:pointer; text-decoration:none; white-space:nowrap;
+    border-radius:6px; padding:13px 22px; border:1px solid transparent; transition:background .18s, border-color .18s, color .18s, transform .1s; display:inline-flex; align-items:center; justify-content:center; }
+  .btn:active{ transform:translateY(1px); }
+  .btn.dark{ background:var(--ink); color:#fff; }
+  .btn.dark:hover{ background:#000; }
+  .btn.outline{ background:#fff; color:var(--ink); border-color:var(--line); }
+  .btn.outline:hover{ border-color:var(--ink); }
+
+  /* orb backdrop — fixed behind the whole page, choreographed on scroll */
+  .orb-bg{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+  .stage{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none;
+    transform-origin:center; will-change:transform, opacity; }
+  #orb{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+  /* hero */
+  .hero{ position:relative; z-index:1; height:100dvh; display:flex; align-items:center;
+    justify-content:center; padding:0; pointer-events:none; }
+  .hero-inner{ width:100%; max-width:clamp(400px,46vh,468px); margin:0 auto; padding:0 24px;
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    gap:clamp(16px,2.4vh,26px); pointer-events:none; }
+  .hero-inner > *{ pointer-events:auto; }
+  /* headline tracks the orb (orb diameter = 60vh), so it stays inside the ring on short viewports */
+  .hero-inner h1{ font-size:clamp(28px,4.6vh,44px); font-weight:400; line-height:1.05; letter-spacing:-0.03em; }
+  .hero .lead{ position:absolute; top:50%; translate:0 -50%;
+    left:calc(50% + 30vh + clamp(16px,2.5vw,40px));   /* just outside the ring's right edge */
+    right:clamp(20px,3vw,48px); max-width:300px; text-align:left;
+    font-size:clamp(15px,1.1vw,18px); line-height:1.6; color:var(--ink); font-weight:400; pointer-events:auto; }
+  .cta-row{ display:flex; flex-wrap:wrap; justify-content:center; gap:14px; margin-top:clamp(6px,1vh,12px); }
+  .cta-row .btn{ padding:16px 30px; font-size:16px; }
+
+  /* shared section bits */
+  .section{ position:relative; z-index:1; background:var(--bg); padding:clamp(72px,10vh,120px) 0; }
+  .eyebrow{ font-size:13px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:var(--accent); }
+  .sec-title{ font-size:clamp(32px,4.4vw,48px); font-weight:400; line-height:1.08; letter-spacing:-0.02em; color:var(--ink); margin-top:18px; }
+  .sec-sub{ font-size:clamp(15px,1.3vw,18px); color:var(--dim); margin-top:18px; max-width:620px; line-height:1.5; }
+
+  /* logo strip */
+  .logos{ position:relative; z-index:1; background:transparent; padding:clamp(20px,3vh,36px) 0; margin-top:calc(-14vh + 50px); }
+  /* sections that reveal the fixed orb behind them */
+  .section.why{ background:transparent; }
+  .marquee{ width:100%; overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);
+            mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); }
+  .marquee-track{ display:flex; align-items:center; gap:clamp(44px,5vw,88px); width:max-content;
+    animation:logoscroll 90s linear infinite; }
+  .marquee:hover .marquee-track{ animation-play-state:paused; }
+  .marquee-track .lg{ height:26px; width:auto; flex:0 0 auto; filter:brightness(0); opacity:.38; transition:opacity .25s; display:block; }
+  .marquee-track .lg:hover{ opacity:1; }
+  @keyframes logoscroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *,*::before,*::after{ animation-duration:.001ms!important; animation-iteration-count:1!important;
+      transition-duration:.001ms!important; scroll-behavior:auto!important; }
+    .marquee{ -webkit-mask-image:none; mask-image:none; }
+    .marquee-track{ animation:none; flex-wrap:wrap; justify-content:center; width:100%; gap:clamp(28px,4vw,56px); }
+  }
+
+  /* why maropost */
+  .why-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:20px; margin-top:clamp(40px,5vh,56px); }
+  .why-card{ background:var(--bg); border:1px solid var(--line); border-radius:16px; padding:32px 30px 34px; min-height:300px; display:flex; flex-direction:column;
+    transition:border-color .25s, transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s; }
+  .why-card:hover{ border-color:rgba(24,27,33,0.16); transform:translateY(-4px); box-shadow:0 22px 48px -28px rgba(24,27,33,0.30); }
+  .why-card .ill{ order:-1; width:52px; height:52px; margin-bottom:24px; border-radius:13px; background:#f4f5f7;
+    display:grid; place-items:center; color:var(--ink-soft); transition:background .25s, color .25s; }
+  .why-card .ill svg{ width:24px; height:24px; display:block; }
+  .why-card:hover .ill{ background:#e9f2fe; color:var(--accent); }
+  .why-card .ce{ font-size:13px; font-weight:600; color:var(--ink-soft); }
+  .why-card h3{ font-size:clamp(20px,1.6vw,24px); font-weight:600; line-height:1.2; letter-spacing:-0.01em; margin-top:12px; }
+  .why-card .cd{ margin-top:14px; font-size:14.5px; color:var(--dim); line-height:1.55; }
+
+  /* real impact (dark band) */
+  .impact{ position:relative; z-index:1; background:#2b2b2b; color:#fff; }
+  .impact-inner{ display:flex; align-items:center; justify-content:space-between; gap:40px;
+    padding-top:clamp(52px,8vh,80px); padding-bottom:clamp(52px,8vh,80px); flex-wrap:wrap; }
+  .impact-title{ font-size:clamp(24px,2.4vw,30px); font-weight:500; line-height:1.15; }
+  .stats{ display:flex; gap:clamp(34px,4vw,72px); flex-wrap:wrap; }
+  .stat-num{ font-size:clamp(34px,3.6vw,46px); font-weight:500; letter-spacing:-0.02em; line-height:1; }
+  .stat-label{ margin-top:10px; font-size:14px; color:#a8a8a8; }
+
+  /* how it works */
+  .hiw-grid{ display:grid; grid-template-columns:minmax(340px,420px) 1fr; gap:clamp(40px,5vw,80px); margin-top:clamp(40px,5vh,56px); align-items:start; }
+  .hiw-visual img{ width:100%; border-radius:16px; display:block; }
+
+  /* who we're built for — expanding image accordion */
+  .icp-accordion{ display:flex; gap:6px; margin-top:clamp(40px,5vh,56px);
+    height:clamp(440px,46vw,580px); border-radius:16px; overflow:hidden; }
+  .icp-panel{ position:relative; flex:1 1 0%; min-width:0; overflow:hidden; cursor:pointer;
+    border:0; margin:0; padding:0; font-family:inherit; text-align:left; color:#fff; border-radius:14px;
+    background:#1c1f24 var(--img) center/cover no-repeat; outline:none; isolation:isolate;
+    transition:flex-grow .55s cubic-bezier(.22,1,.36,1); }
+  .icp-panel.is-active{ flex-grow:9; }
+  .icp-panel::before{ content:""; position:absolute; inset:0; z-index:0;
+    background:linear-gradient(180deg, rgba(0,0,0,0.34), rgba(0,0,0,0.26) 50%, rgba(0,0,0,0.60));
+    transition:background .4s; }
+  .icp-panel:focus-visible{ box-shadow:inset 0 0 0 2px var(--accent); }
+  /* collapsed: vertical label */
+  .icp-tab{ position:absolute; z-index:1; bottom:26px; left:50%; transform:translateX(-50%) rotate(180deg);
+    writing-mode:vertical-rl; white-space:nowrap; font-size:clamp(21px,1.5vw,26px); font-weight:500;
+    letter-spacing:0.01em; color:#fff; transition:opacity .25s; }
+  .icp-panel.is-active .icp-tab{ opacity:0; }
+  /* expanded content */
+  .icp-content{ position:absolute; inset:0; z-index:1; display:flex; flex-direction:column; justify-content:space-between;
+    padding:clamp(28px,3vw,52px); opacity:0; visibility:hidden; transition:opacity .4s .08s, visibility 0s .48s; }
+  .icp-panel.is-active .icp-content{ opacity:1; visibility:visible; transition:opacity .45s .12s, visibility 0s; }
+  .icp-top{ display:flex; flex-direction:column; gap:14px; max-width:460px; }
+  .icp-name{ font-size:clamp(24px,2vw,32px); font-weight:500; line-height:1.1; letter-spacing:-0.03em; white-space:nowrap; }
+  .icp-desc{ font-size:clamp(15px,1.2vw,18px); font-weight:500; line-height:1.45; letter-spacing:-0.02em; max-width:340px; }
+  .icp-more{ font-size:clamp(16px,1.3vw,20px); font-weight:600; letter-spacing:-0.02em; }
+  .icp-bottom{ display:flex; flex-direction:column; gap:clamp(16px,1.8vw,26px); }
+  .icp-rev{ font-size:clamp(22px,1.9vw,32px); font-weight:500; line-height:1.1; letter-spacing:-0.03em; white-space:nowrap; }
+  .icp-rule{ height:1px; width:100%; max-width:1023px; background:rgba(255,255,255,0.42); }
+  .icp-logos-row{ display:flex; align-items:center; gap:clamp(24px,2.8vw,48px); align-self:flex-start; }
+  .icp-logo-item{ height:clamp(24px,2.4vw,36px); width:auto; max-width:160px; object-fit:contain;
+    mix-blend-mode:screen; opacity:.9; flex-shrink:0; }
+
+  /* customer stories — autoplay carousel */
+  .stories .head{ text-align:center; }
+  .stories .sec-title{ margin-left:auto; margin-right:auto; }
+  .story-carousel{ margin-top:clamp(40px,5vh,56px); }
+  .story-viewport{ overflow:hidden; border-radius:16px; }
+  .story-track{ display:flex; }
+  .story-track.anim{ transition:transform .6s cubic-bezier(.22,1,.36,1); }
+  .story-card{ flex:0 0 100%; display:grid; grid-template-columns:2fr 1fr; background:#000; aspect-ratio:1454/620; }
+  .story-photo{ position:relative; background:var(--img) center/cover no-repeat;
+    padding:clamp(28px,3vw,54px); display:flex; flex-direction:column; gap:clamp(16px,2vw,28px); isolation:isolate; }
+  .story-photo::before{ content:""; position:absolute; inset:0; z-index:0; background:rgba(0,0,0,0.20); }
+  .story-photo > *{ position:relative; z-index:1; }
+  .story-brand{ height:clamp(40px,4.6vw,64px); width:auto; align-self:flex-start; }
+  .story-metric{ font-size:clamp(24px,2.6vw,36px); font-weight:500; line-height:1.1; letter-spacing:-0.03em; color:#fff; max-width:320px; }
+  .story-quote{ background:#000; color:#fff; padding:clamp(28px,3vw,54px); display:flex; flex-direction:column; }
+  .story-q{ font-style:italic; font-size:clamp(19px,2.4vw,36px); font-weight:400; line-height:1.12; letter-spacing:-0.03em; }
+  .story-by{ font-size:clamp(15px,1.4vw,20px); margin-top:clamp(16px,2vw,26px); color:#cfcfcf; line-height:1.45; }
+  .story-link{ margin-top:auto; padding-top:24px; font-size:clamp(16px,1.6vw,24px); font-weight:600;
+    color:#fff; text-decoration:none; letter-spacing:-0.02em; transition:color .18s; }
+  .story-link:hover{ color:#9fc6ff; }
+  /* light-photo cards: dark logo + metric for contrast */
+  .story-card.on-light .story-photo::before{ background:rgba(0,0,0,0.04); }
+  .story-card.on-light .story-metric{ color:var(--ink); }
+  .story-card.on-light .story-brand{ height:clamp(26px,2.8vw,36px); filter:brightness(0); }
+  .story-controls{ display:flex; align-items:center; justify-content:center; gap:18px; margin-top:26px; }
+  .story-arrow{ width:46px; height:46px; border-radius:50%; border:1px solid var(--line); background:#fff;
+    color:var(--ink); cursor:pointer; display:grid; place-items:center; transition:border-color .2s, color .2s; }
+  .story-arrow svg{ width:18px; height:18px; }
+  .story-arrow:hover{ border-color:var(--ink); color:var(--accent); }
+  .story-dots{ display:flex; align-items:center; gap:4px; }
+  /* 24px transparent hit-area; visual pill drawn via ::before (touch-target ≥24px) */
+  .story-dot{ width:24px; height:24px; padding:0; border:0; background:none; cursor:pointer;
+    display:grid; place-items:center; border-radius:50%; }
+  .story-dot::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--line);
+    transition:width .25s cubic-bezier(.22,1,.36,1), background .25s; }
+  .story-dot.is-on::before{ width:26px; border-radius:4px; background:var(--ink); }
+  .story-play{ width:46px; height:46px; border-radius:50%; border:1px solid var(--line); background:#fff;
+    color:var(--ink); cursor:pointer; display:grid; place-items:center; transition:border-color .2s, color .2s; }
+  .story-play svg{ width:16px; height:16px; }
+  .story-play:hover{ border-color:var(--ink); color:var(--accent); }
+  .story-play .icon-play{ display:none; }
+  .story-play.is-paused .icon-pause{ display:none; }
+  .story-play.is-paused .icon-play{ display:block; }
+
+  /* cta */
+  .cta-section{ position:relative; z-index:1; background:transparent; padding:clamp(80px,14vh,160px) 0; text-align:center; }
+  .cta-title{ font-size:clamp(34px,5vw,56px); font-weight:400; line-height:1.05; letter-spacing:-0.02em; max-width:900px; margin:0 auto; }
+  .cta-section .cta-row{ justify-content:center; }
+
+  /* footer */
+  .footer{ position:relative; z-index:1; background:#0f1012; color:#fff; padding-top:clamp(64px,9vh,96px); overflow:hidden; }
+  .footer-cols{ display:grid; grid-template-columns:repeat(6,1fr); gap:30px; }
+  .fcol h4{ font-size:15px; font-weight:600; margin-bottom:18px; }
+  .fcol a{ display:block; color:#9aa0a6; font-size:14px; line-height:1.35; text-decoration:none; margin-bottom:12px; transition:color .18s; }
+  .fcol a:hover{ color:#fff; }
+  .footer-watermark{ font-weight:700; font-size:clamp(26px,7vw,150px); letter-spacing:-0.03em; line-height:1;
+    color:#1c1d1f; white-space:nowrap; padding:clamp(48px,8vh,90px) clamp(22px,5vw,48px) clamp(24px,4vh,44px); }
+
+  /* scroll-reveal entrance motion (html.reveal-on set pre-paint; reduced-motion skips it) */
+  html.reveal-on :is(.logos-row,.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-accordion,.story-carousel,.cta-title){
+    opacity:0; transform:translateY(18px);
+    transition:opacity .6s cubic-bezier(.22,1,.36,1), transform .6s cubic-bezier(.22,1,.36,1); transition-delay:var(--d,0s); }
+  html.reveal-on :is(.logos-row,.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-accordion,.story-carousel,.cta-title).in{
+    opacity:1; transform:none; }
+
+  /* stats dividers */
+  .stat{ position:relative; padding-left:0; }
+  .stats .stat + .stat{ padding-left:clamp(34px,4vw,72px); }
+  .stats .stat + .stat::before{ content:""; position:absolute; left:clamp(17px,2vw,36px); top:2px; bottom:2px; width:1px; background:rgba(255,255,255,0.14); }
+
+  /* how-it-works accordion */
+  .cloud{ border-top:1px solid var(--line); }
+  .cloud:last-child{ border-bottom:1px solid var(--line); }
+  .cloud-head{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:16px;
+    background:none; border:0; cursor:pointer; text-align:left; padding:22px 0; font-family:inherit; color:var(--ink);
+    transition:color .2s; }
+  .cloud-head:hover{ color:var(--accent); }
+  .cloud-head h3{ font-size:clamp(24px,2.2vw,32px); font-weight:500; letter-spacing:-0.01em; color:inherit; margin:0; }
+  .cloud-chev{ flex:0 0 auto; width:22px; height:22px; color:var(--dimmer); transition:transform .3s cubic-bezier(.22,1,.36,1), color .2s; }
+  .cloud.open .cloud-chev{ transform:rotate(180deg); color:var(--ink); }
+  .cloud-head:hover .cloud-chev{ color:var(--accent); }
+  .cloud-body{ max-height:0; opacity:0; overflow:hidden; transition:max-height .35s cubic-bezier(.22,1,.36,1), opacity .35s, padding .35s; }
+  .cloud.open .cloud-body{ max-height:240px; opacity:1; padding-bottom:24px; }
+  .cloud-body .cloud-desc{ color:var(--dim); font-size:15px; line-height:1.55; max-width:420px; margin:0; }
+  .cloud-body .cloud-link{ display:inline-block; margin-top:16px; color:var(--ink); font-weight:600; font-size:14px; text-decoration:none; }
+  .cloud-body .cloud-link:hover{ color:var(--accent); }
+
+  @media (max-width:1000px){
+    .why-grid{ grid-template-columns:repeat(2,1fr); }
+    .hiw-grid{ grid-template-columns:1fr; }
+    .footer-cols{ grid-template-columns:repeat(3,1fr); }
+  }
+  @media (max-width:880px){
+    .nav-links{ display:none; }
+    .nav-toggle{ display:inline-flex; }
+    .hero-inner{ max-width:90vw; }
+    .hero-inner h1{ font-size:clamp(30px,8vw,44px); }
+    .hero .lead{ display:none; }
+    /* accordion → vertical stack on mobile (tap/keyboard expands a row's height) */
+    .icp-accordion{ flex-direction:column; height:auto; }
+    .icp-panel{ flex:none; height:84px; transition:height .5s cubic-bezier(.22,1,.36,1); }
+    .icp-panel.is-active{ height:clamp(380px,82vw,460px); }
+    .icp-tab{ writing-mode:horizontal-tb; transform:none; inset:auto auto 50%; left:24px; translate:0 50%; font-size:18px; }
+    .icp-content{ padding:24px; }
+    .icp-name,.icp-rev{ white-space:normal; }
+    /* carousel card → stacked photo over quote */
+    .story-card{ grid-template-columns:minmax(0,1fr); aspect-ratio:auto; min-width:0; }
+    .story-photo{ aspect-ratio:16/10; min-width:0; }
+    .story-quote{ min-width:0; }
+  }
+  @media (max-width:600px){
+    .why-grid{ grid-template-columns:1fr; }
+    .why-card{ min-height:auto; }
+    .footer-cols{ grid-template-columns:repeat(2,1fr); }
+  }
+  @media (max-width:480px){
+    /* keep the nav bar from overflowing: Log in lives in the hamburger menu */
+    .nav-right .btn.outline{ display:none; }
+    .nav-right .btn{ padding:11px 16px; font-size:14px; }
+    .nav-left{ gap:14px; }
+  }
+</style>
+<script>
+  /* enable scroll-reveal hidden state before first paint (skip for reduced motion) */
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('reveal-on');
+</script>
+</head>
+<body>
+
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <nav>
+    <div class="nav-left">
+      <a class="wordmark" href="landing.html">MAROPOST</a>
+      <div class="nav-links">
+        <button class="navlink" type="button">Products <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="navlink" type="button">Customers <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="navlink" type="button">Pricing</button>
+        <button class="navlink" type="button">Resources <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+      </div>
+    </div>
+    <div class="nav-right">
+      <a class="btn outline" href="login.html">Log in</a>
+      <a class="btn dark" href="login.html">Book a demo</a>
+      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
+        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <nav id="mobileMenu" class="mobile-menu" hidden aria-label="Mobile navigation">
+    <button class="m-item" type="button">Products</button>
+    <button class="m-item" type="button">Customers</button>
+    <button class="m-item" type="button">Pricing</button>
+    <button class="m-item" type="button">Resources</button>
+    <div class="m-cta">
+      <a class="btn outline" href="login.html">Log in</a>
+      <a class="btn dark" href="login.html">Book a demo</a>
+    </div>
+  </nav>
+
+  <div class="orb-bg">
+    <div class="stage">
+      <canvas id="orb" data-wavy="1"></canvas>
+    </div>
+  </div>
+
+  <main id="main" tabindex="-1">
+
+  <section class="hero" aria-label="Introduction">
+    <div class="hero-inner">
+      <h1>Built for commerce.<br>Powered by AI.</h1>
+      <div class="cta-row">
+        <a class="btn dark" href="login.html#signup">Start free trial</a>
+        <a class="btn outline" href="login.html">Book a demo</a>
+      </div>
+    </div>
+    <p class="lead">Maropost replaces fragmented systems so teams can move faster and scale smarter.</p>
+  </section>
+
+  <!-- customer logos -->
+  <section class="logos" aria-label="Trusted by">
+    <div class="marquee">
+      <div class="marquee-track" id="logoTrack">
+        <img class="lg" src="logos/sandro.svg" alt="Sandro">
+        <img class="lg" src="logos/mountain-equipment-company.svg" alt="Mountain Equipment Company">
+        <img class="lg" src="logos/mxstore.svg" alt="MXSTORE">
+        <img class="lg" src="logos/weber.svg" alt="Weber">
+        <img class="lg" src="logos/salomon.svg" alt="Salomon">
+        <img class="lg" src="logos/seiko.svg" alt="Seiko">
+        <img class="lg" src="logos/biotrust.svg" alt="BioTrust">
+        <img class="lg" src="logos/giant.svg" alt="Giant">
+        <img class="lg" src="logos/iconbydesign.svg" alt="IconByDesign">
+        <img class="lg" src="logos/luxottica.svg" alt="Luxottica">
+        <img class="lg" src="logos/mercedes-benz.svg" alt="Mercedes-Benz">
+        <img class="lg" src="logos/intersport.svg" alt="Intersport">
+        <img class="lg" src="logos/draper-james.svg" alt="Draper James">
+        <img class="lg" src="logos/7-for-all-mankind.svg" alt="7 For All Mankind">
+        <img class="lg" src="logos/municipal.svg" alt="Municipal">
+      </div>
+    </div>
+  </section>
+
+  <!-- why maropost -->
+  <section class="section why">
+    <div class="wrap">
+      <p class="eyebrow">Why Maropost</p>
+      <h2 class="sec-title">If you want real growth,<br>this is where you start.</h2>
+      <p class="sec-sub">Modular platforms that work as one—built for reliable growth.</p>
+      <div class="why-grid">
+        <article class="why-card">
+          <p class="ce">Growing complexity</p>
+          <h3>Reduce stack complexity as your business grows</h3>
+          <p class="cd">Simplify catalogs, storefronts, and operations as your business outgrows current systems.</p>
+          <div class="ill" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7.5 12 12l9-4.5L12 3Z"/><path d="M3 12l9 4.5L21 12"/><path d="M3 16.5 12 21l9-4.5"/></svg></div>
+        </article>
+        <article class="why-card">
+          <p class="ce">Connected channels</p>
+          <h3>Manage all your channels in one system</h3>
+          <p class="cd">Run ecommerce and retail from one system with shared data across touchpoints.</p>
+          <div class="ill" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="5" r="1.8"/><circle cx="19" cy="5" r="1.8"/><circle cx="5" cy="19" r="1.8"/><circle cx="19" cy="19" r="1.8"/><path d="M10.2 10.2 6.3 6.3M13.8 10.2l3.9-3.9M10.2 13.8l-3.9 3.9M13.8 13.8l3.9 3.9"/></svg></div>
+        </article>
+        <article class="why-card">
+          <p class="ce">Future-proof</p>
+          <h3>Choose a platform built to grow with you</h3>
+          <p class="cd">Connect marketing, commerce, and service with enterprise-grade performance and security.</p>
+          <div class="ill" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-8"/><path d="M16 8h5v5"/></svg></div>
+        </article>
+        <article class="why-card">
+          <p class="ce">Integration-ready</p>
+          <h3>Work with the tools you already have</h3>
+          <p class="cd">Integrate with existing tools using APIs to sync data and automate workflows.</p>
+          <div class="ill" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5l5-5"/><path d="M11 6.5 12.5 5a4 4 0 0 1 5.7 5.7l-1.5 1.5"/><path d="M13 17.5 11.5 19a4 4 0 0 1-5.7-5.7l1.5-1.5"/></svg></div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- real impact -->
+  <section class="impact">
+    <div class="wrap impact-inner">
+      <h2 class="impact-title">Real impact,<br>delivered.</h2>
+      <div class="stats">
+        <div class="stat"><div class="stat-num">$10B+</div><div class="stat-label">annual transactions</div></div>
+        <div class="stat"><div class="stat-num">5,000+</div><div class="stat-label">global merchants</div></div>
+        <div class="stat"><div class="stat-num">65%</div><div class="stat-label">improved ROI</div></div>
+        <div class="stat"><div class="stat-num">3X</div><div class="stat-label">reduced technology costs</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- how it works -->
+  <section class="section">
+    <div class="wrap">
+      <p class="eyebrow">How it works</p>
+      <h2 class="sec-title">Power your business from one unified platform.</h2>
+      <p class="sec-sub">Modular platforms that work as one—built for reliable growth.</p>
+      <div class="hiw-grid">
+        <div class="cloud-list">
+          <div class="cloud open">
+            <button class="cloud-head" type="button" aria-expanded="true"><h3>Commerce Cloud</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="cloud-body"><p class="cloud-desc">Sell everywhere without the chaos. Manage storefronts, orders, and fulfillment from one place so your team moves faster.</p><a class="cloud-link" href="#">Learn more →</a></div>
+          </div>
+          <div class="cloud">
+            <button class="cloud-head" type="button" aria-expanded="false"><h3>Marketing Cloud</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="cloud-body"><p class="cloud-desc">Reach the right customers with campaigns, automation, and audiences powered by your unified commerce data.</p><a class="cloud-link" href="#">Learn more →</a></div>
+          </div>
+          <div class="cloud">
+            <button class="cloud-head" type="button" aria-expanded="false"><h3>Retail Cloud</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="cloud-body"><p class="cloud-desc">Unify in-store and online with POS, inventory, and customer profiles that stay in sync across every location.</p><a class="cloud-link" href="#">Learn more →</a></div>
+          </div>
+          <div class="cloud">
+            <button class="cloud-head" type="button" aria-expanded="false"><h3>Merchandising Cloud</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="cloud-body"><p class="cloud-desc">Manage catalogs, pricing, and product data at scale with rich attributes and effortless bulk control.</p><a class="cloud-link" href="#">Learn more →</a></div>
+          </div>
+          <div class="cloud">
+            <button class="cloud-head" type="button" aria-expanded="false"><h3>Service Cloud</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="cloud-body"><p class="cloud-desc">Resolve issues faster with a connected support desk that sees every order, customer, and interaction.</p><a class="cloud-link" href="#">Learn more →</a></div>
+          </div>
+          <div class="cloud">
+            <button class="cloud-head" type="button" aria-expanded="false"><h3>Da Vinci AI</h3><svg class="cloud-chev" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+            <div class="cloud-body"><p class="cloud-desc">Run the whole platform by voice or text—Da Vinci turns intents into actions across commerce and marketing.</p><a class="cloud-link" href="#">Learn more →</a></div>
+          </div>
+        </div>
+        <div class="hiw-visual">
+          <img src="assets/commerce-visual.png" alt="Commerce Cloud product preview">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- who we're built for -->
+  <section class="section">
+    <div class="wrap">
+      <p class="eyebrow">Who we're built for</p>
+      <h2 class="sec-title">For retailers and ecommerce brands building for what's next</h2>
+      <p class="sec-sub">Trusted across ecommerce, retail, B2B, and beyond—built for scale and control</p>
+      <div class="icp-accordion" role="group" aria-label="Industries we serve">
+        <button class="icp-panel is-active" type="button" aria-expanded="true" aria-label="Automotive. Drive parts and service revenue, across tens of thousands of SKUs." style="--img:url('assets/icp/automotive.jpg')">
+          <span class="icp-tab" aria-hidden="true">Automotive</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">Automotive</span>
+              <span class="icp-desc">Drive parts and service revenue, across tens of thousands of SKUs.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_1.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_2.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_3.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+        <button class="icp-panel" type="button" aria-expanded="false" aria-label="eCommerce. Grow faster, personalize every touchpoint, convert more shoppers." style="--img:url('assets/icp/ecommerce.jpg')">
+          <span class="icp-tab" aria-hidden="true">eCommerce</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">eCommerce</span>
+              <span class="icp-desc">Grow faster, personalize every touchpoint, convert more shoppers.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_1.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_2.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/automotive_3.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+        <button class="icp-panel" type="button" aria-expanded="false" aria-label="Travel and Tourism. Personalization, automation, conversion across every customer touchpoint." style="--img:url('assets/icp/travel.jpg')">
+          <span class="icp-tab" aria-hidden="true">Travel &amp; Tourism</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">Travel &amp; Tourism</span>
+              <span class="icp-desc">Personalization, automation, conversion across every customer touchpoint.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/travel_hardrock.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/travel_treasure.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/travel_california.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+        <button class="icp-panel" type="button" aria-expanded="false" aria-label="B2B and Wholesale. Increase repeat orders, streamline complex buying and relationships." style="--img:url('assets/icp/b2b.jpg')">
+          <span class="icp-tab" aria-hidden="true">B2B &amp; Wholesale</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">B2B &amp; Wholesale</span>
+              <span class="icp-desc">Increase repeat orders, streamline complex buying and relationships.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/b2b_1.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/b2b_2.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/b2b_3.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+        <button class="icp-panel" type="button" aria-expanded="false" aria-label="Multi-Channel Ecommerce. Sell everywhere, unify channels, inventory, and messaging." style="--img:url('assets/icp/multichannel.jpg')">
+          <span class="icp-tab" aria-hidden="true">Multi-Channel Ecommerce</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">Multi-Channel Ecommerce</span>
+              <span class="icp-desc">Sell everywhere, unify channels, inventory, and messaging.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/multichannel_1.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/multichannel_2.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/multichannel_3.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+        <button class="icp-panel" type="button" aria-expanded="false" aria-label="Sports and Recreation. Drive bookings, create seamless journeys from discovery to reservation." style="--img:url('assets/icp/sports.jpg')">
+          <span class="icp-tab" aria-hidden="true">Sports &amp; Recreation</span>
+          <span class="icp-content">
+            <span class="icp-top">
+              <span class="icp-name">Sports &amp; Recreation</span>
+              <span class="icp-desc">Drive bookings, create seamless journeys from discovery to reservation.</span>
+              <span class="icp-more">Learn more →</span>
+            </span>
+            <span class="icp-bottom">
+              <span class="icp-rev">$1.2 Billion+ in Revenue</span>
+              <span class="icp-rule"></span>
+              <div class="icp-logos-row" aria-hidden="true">
+                <img class="icp-logo-item" src="assets/icp/logos/sports_1.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/sports_2.png" alt="">
+                <img class="icp-logo-item" src="assets/icp/logos/sports_3.png" alt="">
+              </div>
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- customer stories -->
+  <section class="section stories">
+    <div class="wrap">
+      <div class="head">
+        <p class="eyebrow">Customer stories</p>
+        <h2 class="sec-title">Why businesses choose Maropost</h2>
+      </div>
+      <div class="story-carousel">
+        <div class="story-viewport" aria-roledescription="carousel" aria-label="Customer stories">
+          <div class="story-track" id="storyTrack">
+            <article class="story-card" role="group" aria-roledescription="slide" aria-label="1 of 3">
+              <div class="story-photo" style="--img:url('assets/stories/altapac.jpg')">
+                <img class="story-brand" src="assets/stories/altapac-logo.png" alt="Altapac">
+                <p class="story-metric">72,000+ SKUs &amp; 200% growth</p>
+              </div>
+              <div class="story-quote">
+                <p class="story-q">“Managing product data used to take days. Now it takes minutes.”</p>
+                <p class="story-by">Tom Lacey, GM at Altepec</p>
+                <a class="story-link" href="#">Read the story →</a>
+              </div>
+            </article>
+            <article class="story-card on-light" role="group" aria-roledescription="slide" aria-label="2 of 3">
+              <div class="story-photo" style="--img:url('assets/stories/couch.jpg')">
+                <img class="story-brand" src="logos/iconbydesign.svg" alt="Icon by Design">
+                <p class="story-metric">+17 increase in conversion</p>
+              </div>
+              <div class="story-quote">
+                <p class="story-q">“Support has been excellent and AI has really simplified ongoing maintenance.”</p>
+                <p class="story-by">David Light, CEO at Icon by Design</p>
+                <a class="story-link" href="#">Read the story →</a>
+              </div>
+            </article>
+            <article class="story-card on-light" role="group" aria-roledescription="slide" aria-label="3 of 3">
+              <div class="story-photo" style="--img:url('assets/stories/couch.jpg')">
+                <img class="story-brand" src="logos/iconbydesign.svg" alt="Icon by Design">
+                <p class="story-metric">20% in savings annually</p>
+              </div>
+              <div class="story-quote">
+                <p class="story-q">“With visibility across all our stores, we’re confidently never over or understocked.”</p>
+                <p class="story-by">Grant Mayo, Founder &amp; CEO of Nutrition Warehouse</p>
+                <a class="story-link" href="#">Read the story →</a>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div class="story-controls">
+          <button class="story-play" type="button" aria-label="Pause automatic slideshow">
+            <svg class="icon-pause" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+            <svg class="icon-play" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="story-arrow" type="button" data-dir="-1" aria-label="Previous story"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="story-dots" id="storyDots"></div>
+          <button class="story-arrow" type="button" data-dir="1" aria-label="Next story"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- cta -->
+  <section class="cta-section">
+    <div class="wrap">
+      <p class="eyebrow" style="margin-bottom:18px;">Get started</p>
+      <h2 class="cta-title">Ready for your next phase of growth?</h2>
+      <div class="cta-row">
+        <a class="btn dark" href="login.html#signup">Start free trial</a>
+        <a class="btn outline" href="login.html">Book a demo</a>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <!-- footer -->
+  <footer class="footer">
+    <div class="wrap footer-cols">
+      <div class="fcol">
+        <h4>Products</h4>
+        <a href="#">Commerce Cloud</a><a href="#">Retail Cloud</a><a href="#">Marketing Cloud</a><a href="#">Merchandising Cloud</a><a href="#">Service Cloud</a><a href="#">Integrations</a><a href="#">Unified Commerce</a>
+      </div>
+      <div class="fcol">
+        <h4>Solutions</h4>
+        <a href="#">Automotive</a><a href="#">B2B &amp; Wholesale</a><a href="#">Ecommerce</a><a href="#">Electronics</a><a href="#">Gifting</a><a href="#">Media &amp; Entertainment</a><a href="#">Multi-Channel Ecommerce</a><a href="#">Sports &amp; Recreation</a><a href="#">Travel &amp; Tourism</a>
+      </div>
+      <div class="fcol">
+        <h4>Resources</h4>
+        <a href="#">Galaxy community</a><a href="#">Live sales powered by Maropost</a><a href="#">Customer success</a><a href="#">Service partners</a><a href="#">Trust</a><a href="#">CCPA</a><a href="#">DMCA</a><a href="#">Security</a><a href="#">Compliance</a><a href="#">API</a>
+      </div>
+      <div class="fcol">
+        <h4>System status</h4>
+        <a href="#">Marketing Cloud status</a><a href="#">Merchandising Cloud status</a>
+      </div>
+      <div class="fcol">
+        <h4>Partners</h4>
+        <a href="#">Program overview</a>
+      </div>
+      <div class="fcol">
+        <h4>Company</h4>
+        <a href="#">Leadership Team</a><a href="#">Careers</a><a href="#">Press</a><a href="#">Contact us</a><a href="#">Maropost Ventures</a><a href="#">MaropostCARES</a>
+      </div>
+    </div>
+    <div class="footer-watermark">This is Unified Commerce.</div>
+  </footer>
+
+<script>
+  /* scroll-choreographed orb: hero (centered) -> Why (large, lower-left, subtle) -> hidden -> faint in footer */
+  (function(){
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const stage = document.querySelector('.stage');
+    const whyEl = document.querySelector('.section.why');
+    const ctaEl = document.querySelector('.cta-section');
+    if (!stage || !whyEl || !ctaEl) return;
+
+    const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+    const lerp = (a,b,t) => a + (b-a)*t;
+
+    let ticking = false;
+    function update(){
+      ticking = false;
+      const vh = window.innerHeight;
+      const y = window.scrollY || window.pageYOffset;
+      const whyBottom = whyEl.offsetTop + whyEl.offsetHeight - vh;   // Why fully scrolled through
+      const ctaEnter = ctaEl.offsetTop - vh;                        // CTA starts entering
+      const ctaSettled = ctaEl.offsetTop - vh * 0.45;               // CTA roughly centred
+
+      let scale, ox, oy, op;
+      if (y <= whyBottom){
+        // hero -> end of Why: grow, drift lower-left, fade to subtle
+        const t = clamp(y / Math.max(1, whyBottom), 0, 1);
+        scale = lerp(1, 1.7, t);
+        ox = lerp(0, -26, t);   // vw
+        oy = lerp(0, 12, t);    // vh
+        op = lerp(1, 0.32, t);
+      } else if (y < ctaEnter){
+        // middle sections (opaque cover the orb anyway)
+        scale = 1.7; ox = -26; oy = 12; op = 0.32;
+      } else {
+        // CTA: ease back to centre and brighten — the orb's second moment (footer stays opaque/orb-free)
+        const t = clamp((y - ctaEnter) / Math.max(1, ctaSettled - ctaEnter), 0, 1);
+        scale = lerp(1.7, 1.4, t);
+        ox = lerp(-26, 0, t);
+        oy = lerp(12, 0, t);
+        op = lerp(0.32, 0.62, t);
+      }
+      stage.style.transform = 'translate(' + ox + 'vw,' + oy + 'vh) scale(' + scale + ')';
+      stage.style.opacity = op.toFixed(3);
+    }
+    function onScroll(){ if (!ticking){ ticking = true; requestAnimationFrame(update); } }
+    window.addEventListener('scroll', onScroll, { passive:true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+</script>
+
+<script>
+  /* scroll-reveal, how-it-works accordion, stats count-up */
+  (function(){
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* --- duplicate logo marquee for a seamless loop (clones hidden from assistive tech) --- */
+    const logoTrack = document.getElementById('logoTrack');
+    if (logoTrack && !reduce){
+      [...logoTrack.children].forEach(img => {
+        const clone = img.cloneNode(true);
+        clone.setAttribute('aria-hidden', 'true');
+        clone.alt = '';
+        logoTrack.appendChild(clone);
+      });
+    }
+
+    /* --- mobile menu (hamburger disclosure) --- */
+    const navToggle = document.querySelector('.nav-toggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (navToggle && mobileMenu){
+      const setMenu = (open) => {
+        mobileMenu.hidden = !open;
+        navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        if (open){ const first = mobileMenu.querySelector('button, a'); if (first) first.focus(); }
+      };
+      navToggle.addEventListener('click', () => setMenu(mobileMenu.hidden));
+      mobileMenu.querySelectorAll('.m-item, a').forEach(el =>
+        el.addEventListener('click', () => { setMenu(false); navToggle.focus(); }));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !mobileMenu.hidden){ setMenu(false); navToggle.focus(); }
+      });
+      document.addEventListener('click', (e) => {
+        if (!mobileMenu.hidden && !mobileMenu.contains(e.target) && !navToggle.contains(e.target)) setMenu(false);
+      });
+      window.matchMedia('(min-width:881px)').addEventListener('change', (m) => { if (m.matches) setMenu(false); });
+    }
+
+    /* --- scroll-reveal (staggered) --- */
+    if (document.documentElement.classList.contains('reveal-on') && 'IntersectionObserver' in window){
+      const sel = '.eyebrow,.sec-title,.sec-sub,.why-card,.impact-title,.stat,.cloud,.hiw-visual,.icp-accordion,.story-carousel,.cta-title';
+      // stagger items within their groups
+      document.querySelectorAll('.why-grid,.stats,.cloud-list,.stories-grid').forEach(group => {
+        [...group.children].forEach((c,i)=> c.style.setProperty('--d', (i*0.08)+'s'));
+      });
+      const io = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{ if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+      }, { rootMargin:'0px 0px -10% 0px', threshold:0.05 });
+      document.querySelectorAll(sel).forEach(el => io.observe(el));
+    }
+
+    /* --- how it works accordion --- */
+    const clouds = [...document.querySelectorAll('.cloud')];
+    clouds.forEach(cloud => {
+      const head = cloud.querySelector('.cloud-head');
+      head.addEventListener('click', () => {
+        const open = cloud.classList.contains('open');
+        clouds.forEach(c => { c.classList.remove('open'); c.querySelector('.cloud-head').setAttribute('aria-expanded','false'); });
+        if (!open){ cloud.classList.add('open'); head.setAttribute('aria-expanded','true'); }
+      });
+    });
+
+    /* --- who we're built for: expanding image accordion (hover on desktop, click/focus everywhere) --- */
+    const acc = document.querySelector('.icp-accordion');
+    if (acc){
+      const panels = [...acc.querySelectorAll('.icp-panel')];
+      const fine = window.matchMedia('(pointer:fine)').matches;
+      const setActive = (i) => panels.forEach((p, idx) => {
+        const on = idx === i;
+        p.classList.toggle('is-active', on);
+        p.setAttribute('aria-expanded', on ? 'true' : 'false');
+      });
+      panels.forEach((p, i) => {
+        p.addEventListener('click', () => setActive(i));
+        p.addEventListener('focus', () => setActive(i));
+        if (fine) p.addEventListener('mouseenter', () => setActive(i));
+        p.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowRight' || e.key === 'ArrowDown'){ e.preventDefault(); panels[(i + 1) % panels.length].focus(); }
+          else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ e.preventDefault(); panels[(i - 1 + panels.length) % panels.length].focus(); }
+        });
+      });
+    }
+
+    /* --- customer stories: autoplay carousel --- */
+    const car = document.querySelector('.story-carousel');
+    if (car){
+      const track = car.querySelector('.story-track');
+      const cards = [...track.children];
+      const dotsWrap = car.querySelector('.story-dots');
+      const playBtn = car.querySelector('.story-play');
+      const n = cards.length;
+      let idx = 0, timer = null, userPaused = false;
+
+      // only the active slide is interactive / exposed to AT (off-screen slides leave the tab order)
+      const syncSlides = () => cards.forEach((c, ci) => {
+        const on = ci === idx;
+        c.inert = !on;
+        c.setAttribute('aria-hidden', on ? 'false' : 'true');
+      });
+      syncSlides();
+
+      cards.forEach((_, i) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'story-dot' + (i === 0 ? ' is-on' : '');
+        b.setAttribute('aria-label', 'Go to story ' + (i + 1));
+        if (i === 0) b.setAttribute('aria-current', 'true');
+        b.addEventListener('click', () => { go(i); restart(); });
+        dotsWrap.appendChild(b);
+      });
+      const dots = [...dotsWrap.children];
+
+      function go(i){
+        idx = (i + n) % n;
+        track.classList.add('anim');
+        track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+        dots.forEach((d, di) => { const on = di === idx; d.classList.toggle('is-on', on); on ? d.setAttribute('aria-current','true') : d.removeAttribute('aria-current'); });
+        syncSlides();
+      }
+      car.querySelectorAll('.story-arrow').forEach(a => {
+        a.addEventListener('click', () => { go(idx + Number(a.dataset.dir)); restart(); });
+      });
+
+      function start(){ if (!reduce && !userPaused && !timer) timer = setInterval(() => go(idx + 1), 6000); }
+      function stop(){ if (timer){ clearInterval(timer); timer = null; } }
+      function restart(){ stop(); start(); }
+
+      // persistent pause/play control (WCAG 2.2.2)
+      if (playBtn){
+        if (reduce){ playBtn.hidden = true; }
+        playBtn.addEventListener('click', () => {
+          userPaused = !userPaused;
+          playBtn.classList.toggle('is-paused', userPaused);
+          playBtn.setAttribute('aria-label', userPaused ? 'Play automatic slideshow' : 'Pause automatic slideshow');
+          userPaused ? stop() : start();
+        });
+      }
+
+      car.addEventListener('mouseenter', stop);
+      car.addEventListener('mouseleave', () => { if (!userPaused) start(); });
+      car.addEventListener('focusin', stop);
+      car.addEventListener('focusout', () => { if (!userPaused) start(); });
+      start();
+    }
+
+    /* --- stats count-up --- */
+    const impact = document.querySelector('.impact');
+    if (impact && 'IntersectionObserver' in window && !reduce){
+      const io2 = new IntersectionObserver((entries)=>{
+        entries.forEach(e=>{
+          if (!e.isIntersecting) return;
+          io2.disconnect();
+          impact.querySelectorAll('.stat-num').forEach(el=>{
+            const m = el.textContent.trim().match(/^(\D*)([\d,]+)(.*)$/);
+            if (!m) return;
+            const pre = m[1], digits = m[2], suf = m[3];
+            const target = parseInt(digits.replace(/,/g,''),10);
+            const grouped = digits.indexOf(',') !== -1;
+            const dur = 1200, t0 = performance.now();
+            (function step(now){
+              const p = Math.min(1, (now - t0)/dur);
+              const eased = 1 - Math.pow(1 - p, 3);
+              const v = Math.round(target * eased);
+              el.textContent = pre + (grouped ? v.toLocaleString('en-US') : v) + suf;
+              if (p < 1) requestAnimationFrame(step);
+            })(t0);
+          });
+        });
+      }, { threshold:0.4 });
+      io2.observe(impact);
+    }
+  })();
+</script>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module" src="orb.js"></script>
+
+  <a class="davinci-fab" href="index.html" aria-label="Da Vinci AI" title="Try Da Vinci AI">
+    <span class="state-layer" aria-hidden="true"></span>
+    <svg class="gemini-icon" viewBox="0 0 111 111" width="28" height="28" aria-hidden="true" focusable="false">
+      <path d="M4.46652 67.1696C8.06967 65.7695 12.1255 67.5549 13.5261 71.1579C15.6916 76.7287 19.0242 81.9568 23.5388 86.4714C28.0534 90.986 33.2815 94.3186 38.8523 96.4841C42.4553 97.8847 44.2407 101.941 42.8405 105.544C41.4399 109.147 37.3833 110.933 33.78 109.533C26.4337 106.677 19.5532 102.285 13.6394 96.3708C7.72555 90.457 3.3329 83.5765 0.477266 76.2302C-0.92326 72.6269 0.863246 68.5703 4.46652 67.1696ZM96.4841 71.1579C97.8847 67.5549 101.941 65.7695 105.544 67.1696C109.147 68.5703 110.933 72.6269 109.533 76.2302C106.677 83.5765 102.285 90.457 96.3708 96.3708C90.457 102.285 83.5765 106.677 76.2302 109.533C72.6269 110.933 68.5703 109.147 67.1696 105.544C65.7695 101.941 67.5549 97.8847 71.1579 96.4841C76.7287 94.3186 81.9568 90.986 86.4714 86.4714C90.986 81.9568 94.3186 76.7288 96.4841 71.1579ZM55.0046 18.5056C55.7694 18.5056 56.4369 19.028 56.6237 19.7702C57.1944 22.0409 57.9468 24.2624 58.8728 26.4128C61.2936 32.0374 64.6154 36.9602 68.8327 41.1775C73.0523 45.3959 77.974 48.7176 83.5974 51.1384C85.7483 52.0641 87.9699 52.8165 90.2409 53.3874C90.9831 53.5742 91.5044 54.2399 91.5046 55.0046C91.5046 55.7694 90.9833 56.4369 90.24 56.6237C87.9693 57.1944 85.7478 57.9468 83.5974 58.8728C77.9728 61.2936 73.0512 64.6154 68.8327 68.8327C64.6154 73.0523 61.2936 77.974 58.8728 83.5974C57.9466 85.7482 57.194 87.9699 56.6228 90.2409C56.5323 90.6016 56.3239 90.9221 56.031 91.1511C55.738 91.38 55.3764 91.504 55.0046 91.5046C54.24 91.5044 53.5742 90.9832 53.3874 90.24C52.8164 87.9692 52.0638 85.7478 51.1374 83.5974C48.7177 77.9728 45.397 73.0512 41.1775 68.8327C36.959 64.6154 32.0374 61.2936 26.4128 58.8728C24.2623 57.9467 22.0409 57.1941 19.7702 56.6228C19.4096 56.5326 19.0892 56.3247 18.8601 56.032C18.6309 55.7392 18.5066 55.3783 18.5056 55.0066C18.5056 54.2417 19.028 53.5752 19.7702 53.3884C22.041 52.8174 24.2624 52.0648 26.4128 51.1384C32.0374 48.7187 36.9602 45.3969 41.1775 41.1784C45.3957 36.9613 48.7176 32.0391 51.1384 26.4148C52.0641 24.2643 52.8165 22.0427 53.3874 19.7722C53.4774 19.411 53.6852 19.0895 53.9782 18.8601C54.2712 18.6307 54.6326 18.5064 55.0046 18.5056ZM33.78 0.477265C37.3833 -0.923261 41.4399 0.863249 42.8405 4.46652C44.2407 8.06965 42.4553 12.1255 38.8523 13.5261C33.2814 15.6916 28.0534 19.0242 23.5388 23.5388C19.0242 28.0534 15.6916 33.2815 13.5261 38.8523C12.1255 42.4553 8.06964 44.2407 4.46652 42.8405C0.863249 41.4399 -0.923258 37.3833 0.477266 33.78C3.3329 26.4337 7.72555 19.5532 13.6394 13.6394C19.5532 7.72555 26.4337 3.3329 33.78 0.477265ZM67.1696 4.46652C68.5703 0.86325 72.6269 -0.923259 76.2302 0.477265C83.5765 3.3329 90.457 7.72555 96.3708 13.6394C102.285 19.5532 106.677 26.4337 109.533 33.78C110.933 37.3833 109.147 41.4399 105.544 42.8405C101.941 44.2407 97.8847 42.4553 96.4841 38.8523C94.3186 33.2815 90.986 28.0534 86.4714 23.5388C81.9568 19.0242 76.7287 15.6916 71.1579 13.5261C67.5549 12.1255 65.7695 8.06965 67.1696 4.46652Z"/>
+    </svg>
+  </a>
+
+</body>
+</html>
